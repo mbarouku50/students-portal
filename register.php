@@ -1,3 +1,112 @@
+<?php
+include("connection.php");
+
+// Initialize variables
+$errors = [];
+$success = '';
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Sanitize and validate inputs
+    $fullname = trim($_POST['fullname']);
+    $email = trim($_POST['email']);
+    $reg = trim($_POST['reg']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    $program = $_POST['program'];
+    $year = $_POST['year'];
+    
+    // Validate full name
+    if (empty($fullname)) {
+        $errors['fullname'] = 'Full name is required';
+    } elseif (!preg_match("/^[a-zA-Z ]*$/", $fullname)) {
+        $errors['fullname'] = 'Only letters and white space allowed';
+    }
+    
+    // Validate email
+    if (empty($email)) {
+        $errors['email'] = 'Email is required';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = 'Invalid email format';
+    } else {
+        // Check if email already exists
+        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $stmt->store_result();
+        
+        if ($stmt->num_rows > 0) {
+            $errors['email'] = 'Email already registered';
+        }
+        $stmt->close();
+    }
+    
+    // Validate registration number
+    if (empty($reg)) {
+        $errors['reg'] = 'Registration number is required';
+    } elseif (!preg_match("/^\d{2}\.\d{4}\.\d{2}\.\d{2}\.\d{4}$/", $reg)) {
+        $errors['reg'] = 'Invalid registration number format (e.g., 03.2481.01.01.2023)';
+    } else {
+        // Check if reg number already exists
+        $stmt = $conn->prepare("SELECT id FROM users WHERE reg = ?");
+        $stmt->bind_param("s", $reg);
+        $stmt->execute();
+        $stmt->store_result();
+        
+        if ($stmt->num_rows > 0) {
+            $errors['reg'] = 'Registration number already registered';
+        }
+        $stmt->close();
+    }
+    
+    // Validate password
+    if (empty($password)) {
+        $errors['password'] = 'Password is required';
+    } elseif (strlen($password) < 8) {
+        $errors['password'] = 'Password must be at least 8 characters';
+    }
+    
+    // Validate confirm password
+    if (empty($confirm_password)) {
+        $errors['confirm_password'] = 'Please confirm your password';
+    } elseif ($password != $confirm_password) {
+        $errors['confirm_password'] = 'Passwords do not match';
+    }
+    
+    // Validate program
+    if (empty($program)) {
+        $errors['program'] = 'Program of study is required';
+    }
+    
+    // Validate year
+    if (empty($year)) {
+        $errors['year'] = 'Year of study is required';
+    }
+    
+    // If no errors, insert into database
+    if (empty($errors)) {
+        // Hash password - using sha1 with salt (though consider using password_hash() for better security)
+        $salt = "CBE_DOCS_2023"; // Add your own salt
+        $encrypted_password = sha1($fullname . "_" . $password . $salt);
+        
+        // Insert user
+        $stmt = $conn->prepare("INSERT INTO users (fullname, email, reg, password, program, year) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssss", $fullname, $email, $reg, $encrypted_password, $program, $year);
+        
+        if ($stmt->execute()) {
+            $success = 'Registration successful! You can now <a href="login.php">login</a>.';
+            // Clear form
+            $fullname = $email = $reg = $password = $confirm_password = $program = $year = '';
+        } else {
+            $errors['database'] = 'Registration failed: ' . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -108,6 +217,21 @@
             font-size: 1rem;
         }
         
+        .error {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
+        
+        .success {
+            color: #27ae60;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 0.8rem;
+            background-color: rgba(39, 174, 96, 0.1);
+            border-radius: 4px;
+        }
+        
         .btn {
             display: inline-block;
             background-color: var(--secondary-color);
@@ -190,57 +314,92 @@
     <div class="container">
         <div class="auth-container">
             <h2 class="auth-title">Create an Account</h2>
-            <form action="process_register.php" method="POST">
+            
+            <?php if ($success): ?>
+                <div class="success"><?php echo $success; ?></div>
+            <?php endif; ?>
+            
+            <form method="POST">
                 <div class="form-group">
                     <label for="fullname">Full Name</label>
-                    <input type="text" id="fullname" name="fullname" required>
+                    <input type="text" id="fullname" name="fullname" value="<?php echo isset($fullname) ? htmlspecialchars($fullname) : ''; ?>" required>
+                    <?php if (isset($errors['fullname'])): ?>
+                        <div class="error"><?php echo $errors['fullname']; ?></div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
+                    <input type="email" id="email" name="email" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" required>
+                    <?php if (isset($errors['email'])): ?>
+                        <div class="error"><?php echo $errors['email']; ?></div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="form-group">
+                    <label for="reg">Registration Number</label>
+                    <input type="text" id="reg" name="reg" placeholder="e.g., 03.2481.01.01.2023" value="<?php echo isset($reg) ? htmlspecialchars($reg) : ''; ?>" required>
+                    <?php if (isset($errors['reg'])): ?>
+                        <div class="error"><?php echo $errors['reg']; ?></div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required>
+                    <?php if (isset($errors['password'])): ?>
+                        <div class="error"><?php echo $errors['password']; ?></div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
                     <input type="password" id="confirm_password" name="confirm_password" required>
+                    <?php if (isset($errors['confirm_password'])): ?>
+                        <div class="error"><?php echo $errors['confirm_password']; ?></div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
                     <label for="program">Program of Study</label>
                     <select id="program" name="program" required>
                         <option value="">Select your program</option>
-                        <option value="BACC">Bachelor Degree in Accountancy</option>
-                        <option value="BAF">Accounting and Finance</option>
-                        <option value="BAT">Accountancy and Taxation</option>
-                        <option value="BBF">Banking and Finance</option>
-                        <option value="BBA">Business Administration</option>
-                        <option value="BIT">Information Technology</option>
-                        <option value="BMES">Metrology and Standardization</option>
-                        <option value="BMK">Marketing</option>
-                        <option value="BMK-TEM">Marketing & Tourism/Events</option>
-                        <option value="BPS">Procurement & Supplies</option>
-                        <option value="BHRM">Human Resources Management</option>
-                        <option value="BBSE">Business Studies with Education</option>
-                        <option value="BRAM">Records and Archives Management</option>
+                        <option value="BACC" <?php echo (isset($program) && $program == 'BACC') ? 'selected' : ''; ?>>Bachelor Degree in Accountancy</option>
+                        <option value="BAF" <?php echo (isset($program) && $program == 'BAF') ? 'selected' : ''; ?>>Accounting and Finance</option>
+                        <option value="BAT" <?php echo (isset($program) && $program == 'BAT') ? 'selected' : ''; ?>>Accountancy and Taxation</option>
+                        <option value="BBF" <?php echo (isset($program) && $program == 'BBF') ? 'selected' : ''; ?>>Banking and Finance</option>
+                        <option value="BBA" <?php echo (isset($program) && $program == 'BBA') ? 'selected' : ''; ?>>Business Administration</option>
+                        <option value="BIT" <?php echo (isset($program) && $program == 'BIT') ? 'selected' : ''; ?>>Information Technology</option>
+                        <option value="BMES" <?php echo (isset($program) && $program == 'BMES') ? 'selected' : ''; ?>>Metrology and Standardization</option>
+                        <option value="BMK" <?php echo (isset($program) && $program == 'BMK') ? 'selected' : ''; ?>>Marketing</option>
+                        <option value="BMK-TEM" <?php echo (isset($program) && $program == 'BMK-TEM') ? 'selected' : ''; ?>>Marketing & Tourism/Events</option>
+                        <option value="BPS" <?php echo (isset($program) && $program == 'BPS') ? 'selected' : ''; ?>>Procurement & Supplies</option>
+                        <option value="BHRM" <?php echo (isset($program) && $program == 'BHRM') ? 'selected' : ''; ?>>Human Resources Management</option>
+                        <option value="BBSE" <?php echo (isset($program) && $program == 'BBSE') ? 'selected' : ''; ?>>Business Studies with Education</option>
+                        <option value="BRAM" <?php echo (isset($program) && $program == 'BRAM') ? 'selected' : ''; ?>>Records and Archives Management</option>
                     </select>
+                    <?php if (isset($errors['program'])): ?>
+                        <div class="error"><?php echo $errors['program']; ?></div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
                     <label for="year">Year of Study</label>
                     <select id="year" name="year" required>
                         <option value="">Select year</option>
-                        <option value="1">First Year</option>
-                        <option value="2">Second Year</option>
-                        <option value="3">Third Year</option>
-                        <option value="4">Fourth Year</option>
+                        <option value="1" <?php echo (isset($year) && $year == '1') ? 'selected' : ''; ?>>First Year</option>
+                        <option value="2" <?php echo (isset($year) && $year == '2') ? 'selected' : ''; ?>>Second Year</option>
+                        <option value="3" <?php echo (isset($year) && $year == '3') ? 'selected' : ''; ?>>Third Year</option>
+                        <option value="4" <?php echo (isset($year) && $year == '4') ? 'selected' : ''; ?>>Fourth Year</option>
                     </select>
+                    <?php if (isset($errors['year'])): ?>
+                        <div class="error"><?php echo $errors['year']; ?></div>
+                    <?php endif; ?>
                 </div>
+                
+                <?php if (isset($errors['database'])): ?>
+                    <div class="error" style="margin-bottom: 1.5rem;"><?php echo $errors['database']; ?></div>
+                <?php endif; ?>
                 
                 <button type="submit" class="btn">Register</button>
                 
@@ -251,20 +410,6 @@
         </div>
     </div>
     
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="logo">CBE <span>Doc's Store</span></div>
-                <p>The premier document sharing platform for College of Business Education students</p>
-                <div class="social-links">
-                    <a href="#"><i class="fab fa-facebook"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-linkedin"></i></a>
-                </div>
-                <p>&copy; 2025 CBE Doc's Store. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>
+<?php
+include("temperate/footer.php")
+?>

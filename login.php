@@ -1,3 +1,54 @@
+<?php
+session_start();
+
+include("connection.php");
+
+// Initialize variables
+$error = '';
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Get form data
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+
+    // Validate inputs
+    if (empty($email) || empty($password)) {
+        $error = "Email and password are required";
+    } else {
+        // Prepare SQL statement to prevent SQL injection
+        $stmt = $conn->prepare("SELECT id, fullname, email, password FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            
+            // Verify password (using the same encryption method as registration)
+            $salt = "CBE_DOCS_2023"; // Must match the salt used in registration
+            $encrypted_password = sha1($user['fullname'] . "_" . $password . $salt);
+            
+            if ($encrypted_password === $user['password']) {
+                // Authentication successful
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_fullname'] = $user['fullname'];
+                
+                header("Location: index.php");
+                exit();
+            } else {
+                $error = "Invalid email or password";
+            }
+        } else {
+            $error = "Invalid email or password";
+        }
+        $stmt->close();
+    }
+}
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -108,6 +159,15 @@
             font-size: 1rem;
         }
         
+        .error {
+            color: var(--accent-color);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 0.8rem;
+            background-color: rgba(231, 76, 60, 0.1);
+            border-radius: 4px;
+        }
+        
         .btn {
             display: inline-block;
             background-color: var(--secondary-color);
@@ -190,10 +250,15 @@
     <div class="container">
         <div class="auth-container">
             <h2 class="auth-title">Login to Your Account</h2>
-            <form action="authenticate.php" method="POST">
+            
+            <?php if (!empty($error)): ?>
+                <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
+            
+            <form method="POST">
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
+                    <input type="email" id="email" name="email" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" required>
                 </div>
                 
                 <div class="form-group">
@@ -211,20 +276,6 @@
         </div>
     </div>
     
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="logo">CBE <span>Doc's Store</span></div>
-                <p>The premier document sharing platform for College of Business Education students</p>
-                <div class="social-links">
-                    <a href="#"><i class="fab fa-facebook"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-linkedin"></i></a>
-                </div>
-                <p>&copy; 2025 CBE Doc's Store. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>
+<?php
+include("temperate/footer.php")
+?>
