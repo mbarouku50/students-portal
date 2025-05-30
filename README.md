@@ -2,6 +2,10 @@
 
 A web-based Students Portal system where students can obtain a variety of learning materials such as notes, past papers, and other resources.
 
+# admin
+email: cbe@gmail.com
+password: 87654321
+
 ## Overview
 
 The Students Portal provides a centralized platform for students to access and download educational materials needed for their studies. The portal is designed to make it easy for students to browse, find, and obtain resources that support their learning journey.
