@@ -179,7 +179,7 @@
                 <div class="logo">CBE <span>Doc's Store</span></div>
                 <nav>
                     <ul>
-                        <li><a href="index.html">Home</a></li>
+                        <li><a href="index.php">Home</a></li>
                         <li><a href="register.php">Register</a></li>
                     </ul>
                 </nav>

@@ -280,7 +280,7 @@
                 <div class="logo">CBE <span>Doc's Store</span></div>
                 <nav>
                     <ul>
-                        <li><a href="#">Home</a></li>
+                        <li><a href="index.php">Home</a></li>
                         <li><a href="#courses">Courses</a></li>
                         <li><a href="#documents">Document Types</a></li>
                          <li><a href="#">Charts</a></li>
