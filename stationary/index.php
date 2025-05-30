@@ -1,5 +1,5 @@
 
-<?php include("/temperate/header.php"); ?>
+<?php include("../temperate/header.php"); ?>
 
 
 
@@ -202,4 +202,4 @@
 </body>
 </html>
 
-<?php include("template/footer.php"); ?>
+<?php include("../temperate/footer.php");  ?>
