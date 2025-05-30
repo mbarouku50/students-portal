@@ -17,7 +17,6 @@ The Students Portal provides a centralized platform for students to access and d
 
 ## Getting Started
 
-> **Note:** Please update this section with specific setup and installation instructions once available.
 
 1. **Clone the repository:**
    ```bash
