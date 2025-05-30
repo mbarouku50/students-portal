@@ -289,7 +289,7 @@ session_start();
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <!-- Show these only when logged in -->
                             <li><a href="#">Charts</a></li>
-                            <li><a href="#">Upload</a></li>
+                            <li><a href="#">Print</a></li>
                             <li><a href="logout.php">Logout</a></li>
                             <li><span style="color: white;">Welcome, <?php echo htmlspecialchars($_SESSION['user_fullname']); ?></span></li>
                         <?php else: ?>

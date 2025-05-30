@@ -10,6 +10,7 @@
                     <a href="#"><i class="fab fa-linkedin"></i></a>
                 </div>
                 <p>&copy; 2025 CBE Doc's Store. All rights reserved.</p>
+                <p>&copy;<a href="admin_login.php">Admin.</a></p>
             </div>
         </div>
     </footer>
