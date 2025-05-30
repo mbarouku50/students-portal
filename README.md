@@ -25,24 +25,43 @@ The Students Portal provides a centralized platform for students to access and d
    cd students-portal
    ```
 
-2. **Install dependencies:**
+2. **Install backend dependencies:**
    ```bash
-   # For example, if using Node.js
+   cd server
    npm install
    ```
 
-3. **Run the application:**
+3. **Install frontend dependencies:**
    ```bash
-   # For example, if using Node.js
+   cd ../client
+   npm install
+   ```
+
+4. **Configure MySQL database:**
+   - Make sure you have MySQL installed and running.
+   - Create a database for the project (e.g. `students_portal`).
+   - Update your database credentials in the server's configuration file (e.g., `.env` or `config.js`).
+
+5. **Run the backend server (Node.js/Express):**
+   ```bash
+   cd server
    npm start
    ```
 
-4. **Access the portal:**
-   Open your browser and go to `http://localhost:YOUR_PORT` (replace `YOUR_PORT` as needed).
+6. **Run the frontend (React):**
+   ```bash
+   cd ../client
+   npm start
+   ```
+
+7. **Access the portal:**
+   Open your browser and go to `http://localhost:YOUR_FRONTEND_PORT` (replace `YOUR_FRONTEND_PORT` as needed).
 
 ## Technologies Used
 
-- (Add frameworks/libraries here, e.g., React, Node.js, Django, etc.)
+- **Frontend:** [React](https://reactjs.org/)
+- **Backend:** [Node.js](https://nodejs.org/) with [Express](https://expressjs.com/)
+- **Database:** [MySQL](https://www.mysql.com/)
 
 ## Contributing
 
@@ -51,7 +70,3 @@ Contributions are welcome! Please fork the repository and create a pull request 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
----
-
-> **Note:** Please update this README with additional details specific to your implementation and technology stack.
