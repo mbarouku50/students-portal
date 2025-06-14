@@ -286,6 +286,7 @@ session_start();
                         <li><a href="index.php">Home</a></li>
                         <li><a href="#courses">Courses</a></li>
                         <li><a href="#documents">Document Types</a></li>
+                        <li><a href="stationary/index.php">Stationary</a></li>
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <!-- Show these only when logged in -->
                             <li><a href="#">Charts</a></li>
