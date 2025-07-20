@@ -2,6 +2,10 @@
 session_start();
 include("connection.php");
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 $error = '';
 $success = '';
 
@@ -19,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Invalid email format";
     } else {
         // Check if email already exists
-        $stmt = $conn->prepare("SELECT id FROM admin WHERE email = ?");
+        $stmt = $conn->prepare("SELECT admin_id FROM admin WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
@@ -147,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: var(--secondary-color);
             color: white;
             border: none;
+        
             border-radius: 5px;
             font-size: 1rem;
             font-weight: 500;
@@ -179,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="admin-login-container">
         <div class="admin-login-header">
             <h1><i class="fas fa-user-plus"></i> Admin Registration</h1>
-            <p>CBE Doc's Store Management System</p>
+            <p>CBE student-portal Management System</p>
         </div>
         
         <?php if (!empty($error)): ?>

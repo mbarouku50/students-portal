@@ -254,23 +254,53 @@ session_start();
             color: var(--secondary-color);
         }
         
-        @media (max-width: 768px) {
+        /* Responsive Navbar */
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            margin-left: 1rem;
+        }
+        .nav-toggle span {
+            height: 3px;
+            width: 25px;
+            background: white;
+            margin: 4px 0;
+            border-radius: 2px;
+            transition: 0.4s;
+        }
+        @media (max-width: 900px) {
             .header-content {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            nav ul {
                 flex-direction: column;
+                width: 100%;
+                background: var(--primary-color);
+                position: absolute;
+                top: 60px;
+                left: 0;
+                display: none;
+                z-index: 1000;
+            }
+            nav ul.show {
+                display: flex;
+            }
+            nav ul li {
+                margin: 1rem 0;
                 text-align: center;
             }
-            
-            nav ul {
-                margin-top: 1rem;
-                justify-content: center;
+            .nav-toggle {
+                display: flex;
             }
-            
+        }
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.2rem;
+            }
             .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .courses {
-                grid-template-columns: 1fr;
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -280,21 +310,23 @@ session_start();
     <header>
         <div class="container">
             <div class="header-content">
-                <div class="logo">CBE <span>Doc's Store</span></div>
+                <div class="logo">CBE <span>Student-Portal</span></div>
+                <div class="nav-toggle" id="navToggle" aria-label="Toggle navigation" tabindex="0">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
                 <nav>
-                    <ul>
+                    <ul id="navMenu">
                         <li><a href="index.php">Home</a></li>
                         <li><a href="#courses">Courses</a></li>
                         <li><a href="#documents">Document Types</a></li>
-                        <li><a href="stationary/index.php">Stationary</a></li>
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <!-- Show these only when logged in -->
                             <li><a href="#">Charts</a></li>
-                            <li><a href="#">Print</a></li>
+                            <li><a href="stationary/index.php">Stationary</a></li>
                             <li><a href="logout.php">Logout</a></li>
                             <li><span style="color: white;">Welcome, <?php echo htmlspecialchars($_SESSION['user_fullname']); ?></span></li>
                         <?php else: ?>
-                            <!-- Show this only when not logged in -->
                             <li><a href="login.php">Login</a></li>
                         <?php endif; ?>
                     </ul>
@@ -302,6 +334,19 @@ session_start();
             </div>
         </div>
     </header>
+    <script>
+    // Hamburger menu toggle
+    const navToggle = document.getElementById('navToggle');
+    const navMenu = document.getElementById('navMenu');
+    navToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('show');
+    });
+    navToggle.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            navMenu.classList.toggle('show');
+        }
+    });
+    </script>
     
     <section class="hero">
         <div class="container">

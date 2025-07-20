@@ -2,6 +2,10 @@
 session_start();
 include("connection.php");
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -11,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($email) || empty($password)) {
         $error = "Email and password are required";
     } else {
-        $stmt = $conn->prepare("SELECT id, fullname, password FROM admin WHERE email = ?");
+        $stmt = $conn->prepare("SELECT admin_id, fullname, email, password FROM admin WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -24,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $encrypted_password = sha1($password . $salt); 
             
             if ($encrypted_password === $admin['password']) {
-                $_SESSION['admin_id'] = $admin['id'];
+                $_SESSION['admin_id'] = $admin['admin_id'];
                 $_SESSION['admin_fullname'] = $admin['fullname'];
                 $_SESSION['admin_email'] = $admin['email'];
                 
