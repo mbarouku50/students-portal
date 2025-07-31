@@ -368,22 +368,8 @@ include("connection.php");
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>CBE Doc's Store</h2>
-            <p>Administration Panel</p>
-        </div>
-        <ul class="sidebar-menu">
-            <li><a href="admin_dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
-            <li><a href="manage_users.php"><i class="fas fa-users-cog"></i> <span>Manage Users</span> <span class="badge">5 New</span></a></li>
-            <li><a href="manage_documents.php"><i class="fas fa-file-upload"></i> <span>Manage Documents</span></a></li>
-            <li><a href="manage_courses.php"><i class="fas fa-book-open"></i> <span>Manage Courses</span></a></li>
-            <li><a href="reports.php"><i class="fas fa-chart-pie"></i> <span>Reports</span></a></li>
-            <li><a href="system_settings.php"><i class="fas fa-cogs"></i> <span>System Settings</span></a></li>
-            <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
-        </ul>
-    </aside>
+      <!-- Sidebar Navigation -->
+    <?php include('sidebar.php'); ?>
 
     <!-- Main Content Area -->
     <main class="main-content">

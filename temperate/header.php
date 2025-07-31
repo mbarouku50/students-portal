@@ -6,7 +6,7 @@ session_start();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBE Doc's Store - University Document Repository</title>
+    <title>CBE student-portal</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -319,10 +319,10 @@ session_start();
                 <nav>
                     <ul id="navMenu">
                         <li><a href="index.php">Home</a></li>
-                        <li><a href="#courses">Courses</a></li>
-                        <li><a href="#documents">Document Types</a></li>
+                        <li><a href="courses.php">Courses</a></li>
+                        <li><a href="documents.php">Document Types</a></li>
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <li><a href="#">Charts</a></li>
+                            <li><a href="charts.php">Charts</a></li>
                             <li><a href="stationary/index.php">Stationary</a></li>
                             <li><a href="logout.php">Logout</a></li>
                             <li><span style="color: white;">Welcome, <?php echo htmlspecialchars($_SESSION['user_fullname']); ?></span></li>

@@ -1,6 +1,9 @@
 <?php
-session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
+session_start();
 include("connection.php");
 
 // Initialize variables
@@ -9,41 +12,53 @@ $error = '';
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get form data
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
     // Validate inputs
     if (empty($email) || empty($password)) {
         $error = "Email and password are required";
     } else {
         // Prepare SQL statement to prevent SQL injection
-        $stmt = $conn->prepare("SELECT id, fullname, email, password FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt = $conn->prepare("SELECT user_id, fullname, email, password FROM users WHERE email = ?");
+        if ($stmt === false) {
+            $error = "Database error: " . $conn->error;
+        } else {
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
-            
-            // Verify password (using the same encryption method as registration)
-            $salt = "CBE_DOCS_2023"; // Must match the salt used in registration
-            $encrypted_password = sha1($user['fullname'] . "_" . $password . $salt);
-            
-            if ($encrypted_password === $user['password']) {
-                // Authentication successful
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_email'] = $user['email'];
-                $_SESSION['user_fullname'] = $user['fullname'];
+            if ($result->num_rows === 1) {
+                $user = $result->fetch_assoc();
                 
-                header("Location: index.php");
-                exit();
+                // Verify password (using the same encryption method as registration)
+                $salt = "CBE_DOCS_2023"; // Must match the salt used in registration
+                $encrypted_password = sha1($user['fullname'] . "_" . $password . $salt);
+                
+                if ($encrypted_password === $user['password']) {
+                    // Authentication successful - set all session variables
+                    $_SESSION['user_id'] = $user['user_id'];
+                    $_SESSION['user_email'] = $user['email'];
+                    $_SESSION['user_fullname'] = $user['fullname'];
+                    
+                    // Debugging - uncomment to verify session data
+                    // echo "<pre>Session Data: "; print_r($_SESSION); echo "</pre>"; exit();
+                    
+                    // Redirect to index.php
+                    if (headers_sent()) {
+                        die("Redirect failed. Please click this <a href='index.php'>link</a>");
+                    } else {
+                        header("Location: index.php");
+                        exit();
+                    }
+                } else {
+                    $error = "Invalid email or password";
+                }
             } else {
                 $error = "Invalid email or password";
             }
-        } else {
-            $error = "Invalid email or password";
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 $conn->close();
@@ -247,7 +262,7 @@ $conn->close();
         </div>
     </header>
     
-    <div class="container">
+     <div class="container">
         <div class="auth-container">
             <h2 class="auth-title">Login to Your Account</h2>
             

@@ -1,284 +1,432 @@
-<?php include("template/header.php"); ?>
+<?php
+include("temperate/header.php");
+include("../connection.php");
+
+// Fetch all stationery items
+$stationeryItems = [];
+$result = $conn->query("SELECT * FROM stationery ORDER BY stationery_id DESC");
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $stationeryItems[] = $row;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Search Stationery</title>
-    <!-- Responsive viewport for mobile devices -->
+    <title>Find Printing Stations - CBE Doc's Store</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
-
-
-<style>
-    body {
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        background-color: #f3f4f6;
-        margin: 0;
-        color: #1f2937;
-        font-size: 1rem;
-        line-height: 1.6;
-    }
-
-    .stationery-section {
-        padding: 5rem 1.5rem;
-        background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .stationery-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: url('https://source.unsplash.com/random/1920x1080/?pattern') no-repeat center center/cover;
-        opacity: 0.05;
-        z-index: 1;
-    }
-
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-        position: relative;
-        z-index: 2;
-    }
-
-    h2 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #1f2937;
-        text-align: center;
-        margin-bottom: 2.5rem;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .search-section {
-        margin-bottom: 2.5rem;
-        text-align: center;
-    }
-
-    .search-input {
-        width: 100%;
-        max-width: 600px;
-        padding: 0.85rem 1.5rem;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-        background: #fff;
-    }
-
-    .search-input:focus {
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        outline: none;
-    }
-
-    .stationery-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
-    }
-
-    .stationery-card {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-        backdrop-filter: blur(8px);
-    }
-
-    .stationery-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-        background: rgba(255, 255, 255, 1);
-    }
-
-    .stationery-card h3 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1f2937;
-        margin-bottom: 0.75rem;
-    }
-
-    .stationery-card p {
-        color: #4b5563;
-        font-size: 1.1rem;
-        margin: 0.3rem 0;
-    }
-
-    .stationery-card .price {
-        color: #7c3aed;
-        font-weight: 600;
-        font-size: 1.2rem;
-    }
-
-    .stationery-card .btn {
-        display: block;
-        width: 100%;
-        padding: 0.85rem;
-        background: linear-gradient(90deg, #4f46e5, #7c3aed);
-        color: white;
-        text-align: center;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-top: 1.5rem;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .stationery-card .btn:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-    }
-
-    @media (max-width: 768px) {
-        h2 {
-            font-size: 2rem;
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --secondary: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
-
-        .stationery-grid {
-            grid-template-columns: 1fr;
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
+        
         body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .page-subtitle {
+            color: var(--gray);
             font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
         }
-    }
-
-    @media (max-width: 480px) {
-        .stationery-section {
-            padding: 3rem 1rem;
+        
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            position: relative;
         }
-
-        .container {
-            padding: 0 1rem;
-        }
-
-        h2 {
-            font-size: 1.75rem;
-        }
-
-        body {
-            font-size: 1.15rem;
-        }
-
+        
         .search-input {
-            font-size: 1rem;
+            width: 100%;
+            padding: 1rem 1.5rem 1rem 3.5rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
         }
-
-        .stationery-card h3 {
-            font-size: 1.4rem;
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
-
-        .stationery-card p {
-            font-size: 1rem;
+        
+        .search-icon {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 1.2rem;
         }
-
-        .stationery-card .btn {
-            font-size: 1rem;
+        
+        .filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
         }
-    }
-</style>
+        
+        .filter-btn {
+            padding: 0.5rem 1.25rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .stationery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        
+        .stationery-card {
+            background: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+        
+        .stationery-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .card-title i {
+            color: var(--primary);
+        }
+        
+        .card-location {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .contact-info {
+            margin-bottom: 1.5rem;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .contact-item a {
+            color: var(--dark);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .contact-item a:hover {
+            color: var(--primary);
+        }
+        
+        .price-tag {
+            display: inline-block;
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .card-description {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+        }
+        
+        .card-footer {
+            padding: 0 1.5rem 1.5rem;
+        }
+        
+        .action-btn {
+            display: block;
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .no-results {
+            text-align: center;
+            grid-column: 1 / -1;
+            padding: 3rem;
+            color: var(--gray);
+            font-size: 1.2rem;
+            display: none;
+        }
+        
+        .no-results.show {
+            display: block;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 1024px) {
+            .stationery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .page-subtitle {
+                font-size: 1rem;
+            }
+            
+            .filter-bar {
+                justify-content: flex-start;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-container {
+                padding: 1.5rem 1rem;
+            }
+            
+            .page-title {
+                font-size: 1.75rem;
+            }
+            
+            .stationery-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-input {
+                padding: 0.9rem 1rem 0.9rem 3rem;
+                font-size: 1rem;
+            }
+            
+            .search-icon {
+                left: 1rem;
+            }
+        }
+    </style>
 </head>
-
-<section class="stationery-section">
-    <div class="container">
-        <h2>Search Stationery</h2>
-        <div class="search-section">
-            <input type="text" class="search-input" id="stationery-search" placeholder="Search for stationery items...">
+<body>
+    <div class="main-container">
+        <div class="page-header">
+            <h1 class="page-title">Find Printing Stations</h1>
+            <p class="page-subtitle">Browse our network of authorized printing stations near you</p>
         </div>
+        
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" id="search-input" placeholder="Search by name, location, or price...">
+        </div>
+        
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="available">Available</button>
+            <button class="filter-btn" data-filter="cheap">Under 500 Tsh</button>
+            <button class="filter-btn" data-filter="premium">Premium</button>
+        </div>
+        
         <div class="stationery-grid" id="stationery-grid">
-            <div class="stationery-card">
-                <h3>Ubay Ubwela Shop</h3>
-                <p>Location: Campus</p>
-                <p><a href="tel:06897895" style="text-decoration: none; color: inherit;">Call Us <i class="fas fa-phone"></i></a></p>
-                <p>Email: ubayubwelashop@gmail.com</p>
-                <p><a href="https://wa.me/+255689118095" style="text-decoration: none; color: inherit;">Chat with Us <i class="fab fa-whatsapp"></i></a></p>
-                <p class="price">25Tsh per copy</p>
-                <p>Description: your welcome to print with us.</p>
-                <a href="print_documents.php?station=station1" class="btn">Print at Ubay Ubwela Shop</a>
-            </div>
-            <div class="stationery-card">
-                <h3>Mbuya Print</h3>
-                <p>Location: kantini</p>
-                <p><a href="tel:06897896" style="text-decoration: none; color: inherit;">Call Us <i class="fas fa-phone"></i></a></p>
-                <p>Email: Mbuya@gmail.com</p>
-                <p><a href="https://wa.me/+255689118095" style="text-decoration: none; color: inherit;">Chat with Us <i class="fab fa-whatsapp"></i></a></p>
-                <p class="price">50Tsh per copy</p>
-                <p>Description: Print chap with saving time.</p>
-                <a href="print_documents.php?station=station2" class="btn">Print at Mbuya Print</a>
-            </div>
-            <div class="stationery-card">
-                <h3>Hatuchezi Stationary</h3>
-                <p>Location: Mihogo point near city mall</p>
-                <p><a href="tel:06897897" style="text-decoration: none; color: inherit;">Call Us <i class="fas fa-phone"></i></a></p>
-                <p>Email: Hatuchezi@gmail.com</p>
-                <p><a href="https://wa.me/+255689118095" style="text-decoration: none; color: inherit;">Chat with Us <i class="fab fa-whatsapp"></i></a></p>
-                <p class="price">100Tsh per copy</p>
-                <p>Description: Print with high quality machine.</p>
-                <a href="print_documents.php?station=station3" class="btn">Print at Hatuchezi Stationary</a>
-            </div>
-            <div class="stationery-card">
-                <h3>Chapa Chap</h3>
-                <p>Location: Near ATM</p>
-                <p><a href="tel:06897898" style="text-decoration: none; color: inherit;">Call Us <i class="fas fa-phone"></i></a></p>
-                <p>Email: chapachap@gmail.com</p>
-                <p><a href="https://wa.me/+255689118095" style="text-decoration: none; color: inherit;">Chat with Us <i class="fab fa-whatsapp"></i></a></p>
-                <p class="price">30Tsh per copy</p>
-                <p>Description: Fast and reliable printing services.</p>
-                <a href="print_documents.php?station=station4" class="btn">Print at Chapa Chap</a>
-            </div>
-            <div class="stationery-card">
-                <h3>Fast Print</h3>
-                <p>Location: DIT</p>
-                <p><a href="tel:06897899" style="text-decoration: none; color: inherit;">Call Us <i class="fas fa-phone"></i></a></p>
-                <p>Email: fastprint@gmail.com</p>
-                <p><a href="https://wa.me/+255689118095" style="text-decoration: none; color: inherit;">Chat with Us <i class="fab fa-whatsapp"></i></a></p>
-                <p class="price">40Tsh per copy</p>
-                <p>Description: Quick and efficient printing services.</p>
-                <a href="print_documents.php?station=station5" class="btn">Print at Fast Print</a>
-            </div>
-            <div class="stationery-card">
-                <h3>Quality Prints</h3>
-                <p>Location: Near Hostel</p>
-                <p><a href="tel:06897900" style="text-decoration: none; color: inherit;">Call Us <i class="fas fa-phone"></i></a></p>
-                <p>Email: qualityprints@gmail.com</p>
-                <p><a href="https://wa.me/+255689118095" style="text-decoration: none; color: inherit;">Chat with Us <i class="fab fa-whatsapp"></i></a></p>
-                <p class="price">50Tsh per copy</p>
-                <p>Description: High-quality printing services for all your needs.</p>
-                <a href="print_documents.php?station=station6" class="btn">Print at Quality Prints</a>
-            </div>
+            <?php if (empty($stationeryItems)): ?>
+                <div class="no-results show">No printing stations found. Please check back later.</div>
+            <?php else: ?>
+                <?php foreach ($stationeryItems as $item): ?>
+                    <div class="stationery-card" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>" 
+                         data-location="<?= strtolower(htmlspecialchars($item['location'])) ?>"
+                         data-price="<?= htmlspecialchars($item['price']) ?>">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-store"></i>
+                                <?= htmlspecialchars($item['name']) ?>
+                            </h3>
+                            <div class="card-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <?= htmlspecialchars($item['location']) ?>
+                            </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <div class="contact-info">
+                                <div class="contact-item">
+                                    <i class="fas fa-phone"></i>
+                                    <a href="tel:<?= htmlspecialchars($item['phone']) ?>"><?= htmlspecialchars($item['phone']) ?></a>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <a href="mailto:<?= htmlspecialchars($item['email']) ?>"><?= htmlspecialchars($item['email']) ?></a>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fab fa-whatsapp"></i>
+                                    <a href="https://wa.me/<?= htmlspecialchars($item['whatsapp']) ?>" target="_blank">Chat on WhatsApp</a>
+                                </div>
+                            </div>
+                            
+                            <div class="price-tag"><?= number_format($item['price'], 2) ?> Tsh per copy</div>
+                            
+                            <p class="card-description"><?= htmlspecialchars($item['description']) ?></p>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <a href="print_option.php?stationery_id=<?= htmlspecialchars($item['stationery_id']) ?>" class="action-btn">
+                                <i class="fas fa-print"></i> Print at <?= htmlspecialchars($item['name']) ?>
+                            </a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            
+            <div class="no-results" id="no-results">No results match your search criteria.</div>
         </div>
     </div>
-</section>
-
-<script>
-    const searchInput = document.getElementById('stationery-search');
-    const stationeryCards = document.querySelectorAll('.stationery-card');
-
-    searchInput.addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-
-        stationeryCards.forEach(card => {
-            const title = card.querySelector('h3').textContent.toLowerCase();
-            const description = card.querySelector('p:not(.price)').textContent.toLowerCase();
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            const stationeryGrid = document.getElementById('stationery-grid');
+            const noResults = document.getElementById('no-results');
+            const filterButtons = document.querySelectorAll('.filter-btn');
             
-            if (title.includes(searchTerm) || description.includes(searchTerm)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
+            // Search functionality
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                let hasResults = false;
+                
+                document.querySelectorAll('.stationery-card').forEach(card => {
+                    const name = card.getAttribute('data-name');
+                    const location = card.getAttribute('data-location');
+                    const price = card.getAttribute('data-price');
+                    
+                    if (name.includes(searchTerm) || location.includes(searchTerm) || price.includes(searchTerm)) {
+                        card.style.display = 'block';
+                        hasResults = true;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                noResults.classList.toggle('show', !hasResults);
+            });
+            
+            // Filter functionality
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active button
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const filter = this.getAttribute('data-filter');
+                    let hasResults = false;
+                    
+                    document.querySelectorAll('.stationery-card').forEach(card => {
+                        const price = parseFloat(card.getAttribute('data-price'));
+                        
+                        if (filter === 'all' || 
+                            (filter === 'available' && price > 0) ||
+                            (filter === 'cheap' && price <= 500) ||
+                            (filter === 'premium' && price > 500)) {
+                            card.style.display = 'block';
+                            hasResults = true;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                    
+                    noResults.classList.toggle('show', !hasResults);
+                });
+            });
         });
-    });
-</script>
+    </script>
 
-<?php include("template/footer.php"); ?>
+    <?php include("temperate/footer.php"); ?>
+</body>
+</html>

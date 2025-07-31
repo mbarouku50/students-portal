@@ -330,17 +330,14 @@ session_start();
                 <nav>
                     <ul>
                         <li><a href="../index.php">Home</a></li>
-                        <li><a href="#courses">Courses</a></li>
-                        <li><a href="#documents">Document Types</a></li>
-                        <li><a href="stationary/index.php">Stationary</a></li>
+                        <li><a href="../courses.php">Courses</a></li>
+                        <li><a href="../documents.php">Document Types</a></li>
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <!-- Show these only when logged in -->
-                            <li><a href="#">Charts</a></li>
-                            <li><a href="#">Print</a></li>
-                            <li><a href="logout.php">Logout</a></li>
+                            <li><a href="../charts.php">Charts</a></li>
+                            <li><a href="index.php">Stationary</a></li>
+                            <li><a href="../logout.php">Logout</a></li>
                             <li><span style="color: white;">Welcome, <?php echo htmlspecialchars($_SESSION['user_fullname']); ?></span></li>
                         <?php else: ?>
-                            <!-- Show this only when not logged in -->
                             <li><a href="login.php">Login</a></li>
                         <?php endif; ?>
                     </ul>
