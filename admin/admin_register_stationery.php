@@ -19,18 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'whatsapp' => trim($_POST['whatsapp']),
         'description' => trim($_POST['description']),
         'quantity' => intval($_POST['quantity']),
-        'price' => floatval($_POST['price'])
+        'price' => floatval($_POST['price']),
+        'password' => $_POST['password']
     ];
-    
+    $salt = "CBE_DOCS_2023";
+    $hashed_password = sha1($formData['password'] . $salt);
     if ($formData['name'] && $formData['location'] && $formData['phone'] && 
         $formData['email'] && $formData['whatsapp'] && 
-        $formData['quantity'] >= 0 && $formData['price'] >= 0) {
+        $formData['quantity'] >= 0 && $formData['price'] >= 0 && $formData['password']) {
         
-        $stmt = $conn->prepare("INSERT INTO stationery (name, location, phone, email, whatsapp, description, quantity, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('ssssssid', 
+        $stmt = $conn->prepare("INSERT INTO stationery (name, location, phone, email, whatsapp, description, quantity, price, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('ssssssids', 
             $formData['name'], $formData['location'], $formData['phone'], 
             $formData['email'], $formData['whatsapp'], $formData['description'], 
-            $formData['quantity'], $formData['price']);
+            $formData['quantity'], $formData['price'], $hashed_password);
         
         if ($stmt->execute()) {
             $message = '<div class="notification success"><i class="fas fa-check-circle"></i> Stationery registered successfully!</div>';
@@ -636,6 +638,11 @@ if ($result && $result->num_rows > 0) {
                                        placeholder="0.00">
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password <span class="required">*</span></label>
+                        <input type="password" name="password" id="password" class="form-control" required placeholder="Set a password for this stationery">
                     </div>
                     
                     <div class="form-footer">

@@ -1,9 +1,12 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 include '../connection.php';
 $message = '';
 $stationery_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $formData = [
-    'name' => '', 'location' => '', 'phone' => '', 'email' => '', 'whatsapp' => '', 'description' => '', 'quantity' => '', 'price' => ''
+    'name' => '', 'location' => '', 'phone' => '', 'email' => '', 'whatsapp' => '', 'description' => '', 'quantity' => '', 'price' => '', 'password' => ''
 ];
 
 if ($stationery_id > 0) {
@@ -31,20 +34,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $stationery_id > 0) {
         'whatsapp' => trim($_POST['whatsapp']),
         'description' => trim($_POST['description']),
         'quantity' => intval($_POST['quantity']),
-        'price' => floatval($_POST['price'])
+        'price' => floatval($_POST['price']),
+        'password' => $_POST['password']
     ];
-    if ($formData['name'] && $formData['location'] && $formData['phone'] && $formData['email'] && $formData['whatsapp'] && $formData['quantity'] >= 0 && $formData['price'] >= 0) {
-        $stmt = $conn->prepare("UPDATE stationery SET name=?, location=?, phone=?, email=?, whatsapp=?, description=?, quantity=?, price=? WHERE stationery_id=?");
-        $stmt->bind_param('ssssssddi', $formData['name'], $formData['location'], $formData['phone'], $formData['email'], $formData['whatsapp'], $formData['description'], $formData['quantity'], $formData['price'], $stationery_id);
-        if ($stmt->execute()) {
-            $message = '<div class="notification success">Stationery updated successfully!</div>';
-        } else {
-            $message = '<div class="notification error">Error: Could not update stationery.</div>';
-        }
-        $stmt->close();
-    } else {
-        $message = '<div class="notification warning">Please fill all required fields correctly.</div>';
+    $update_sql = "UPDATE stationery SET name=?, location=?, phone=?, email=?, whatsapp=?, description=?, quantity=?, price=?";
+    $params = [$formData['name'], $formData['location'], $formData['phone'], $formData['email'], $formData['whatsapp'], $formData['description'], $formData['quantity'], $formData['price']];
+    $types = 'ssssssdi';
+    if (!empty($formData['password'])) {
+        $salt = "CBE_DOCS_2023";
+        $hashed_password = sha1($formData['password'] . $salt);
+        $update_sql .= ", password=?";
+        $params[] = $hashed_password;
+        $types .= 's';
     }
+    $update_sql .= " WHERE stationery_id=?";
+    $params[] = $stationery_id;
+    $types .= 'i';
+    $stmt = $conn->prepare($update_sql);
+    $stmt->bind_param($types, ...$params);
+    if ($stmt->execute()) {
+        $message = '<div class="notification success">Stationery updated successfully!</div>';
+    } else {
+        $message = '<div class="notification error">Error: Could not update stationery.</div>';
+    }
+    $stmt->close();
 }
 ?>
 <!DOCTYPE html>
@@ -94,6 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $stationery_id > 0) {
                 <input type="number" name="quantity" id="quantity" min="0" value="<?= htmlspecialchars($formData['quantity']) ?>" required>
                 <label for="price">Price (Tsh per copy)</label>
                 <input type="number" name="price" id="price" min="0" step="0.01" value="<?= htmlspecialchars($formData['price']) ?>" required>
+                <label for="password">New Password (leave blank to keep current)</label>
+                <input type="password" name="password" id="password" placeholder="Enter new password if you want to change">
                 <button type="submit"><i class="fas fa-save"></i> Update Stationery</button>
             </form>
         </div>

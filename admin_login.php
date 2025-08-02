@@ -15,32 +15,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($email) || empty($password)) {
         $error = "Email and password are required";
     } else {
-        $stmt = $conn->prepare("SELECT admin_id, fullname, email, password FROM admin WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows === 1) {
-            $admin = $result->fetch_assoc();
-            
-            // Verify password (using the same encryption method as registration)
+        // Try stationery table for stationery login first
+        $stmt2 = $conn->prepare("SELECT stationery_id, name, email, password FROM stationery WHERE email = ?");
+        $stmt2->bind_param("s", $email);
+        $stmt2->execute();
+        $result2 = $stmt2->get_result();
+        if ($result2->num_rows === 1) {
+            $stationary = $result2->fetch_assoc();
             $salt = "CBE_DOCS_2023";
             $encrypted_password = sha1($password . $salt); 
-            
-            if ($encrypted_password === $admin['password']) {
-                $_SESSION['admin_id'] = $admin['admin_id'];
-                $_SESSION['admin_fullname'] = $admin['fullname'];
-                $_SESSION['admin_email'] = $admin['email'];
-                
-                header("Location: admin/admin_dashboard.php");
+            if ($encrypted_password === $stationary['password']) {
+                $_SESSION['stationary_admin_id'] = $stationary['stationery_id'];
+                $_SESSION['stationary_admin_name'] = $stationary['name'];
+                $_SESSION['stationary_id'] = $stationary['stationery_id'];
+                $_SESSION['stationary_email'] = $stationary['email'];
+                header("Location: stationary/stationary_dashboard.php");
                 exit();
             } else {
                 $error = "Invalid email or password";
             }
         } else {
-            $error = "Invalid email or password";
+            // Try admin table for admin login
+            $stmt = $conn->prepare("SELECT admin_id, fullname, email, password FROM admin WHERE email = ?");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows === 1) {
+                $admin = $result->fetch_assoc();
+                $salt = "CBE_DOCS_2023";
+                $encrypted_password = sha1($password . $salt); 
+                if ($encrypted_password === $admin['password']) {
+                    $_SESSION['admin_id'] = $admin['admin_id'];
+                    $_SESSION['admin_fullname'] = $admin['fullname'];
+                    $_SESSION['admin_email'] = $admin['email'];
+                    header("Location: admin/admin_dashboard.php");
+                    exit();
+                } else {
+                    $error = "Invalid email or password";
+                }
+            } else {
+                $error = "Invalid email or password";
+            }
+            $stmt->close();
         }
-        $stmt->close();
+        $stmt2->close();
     }
 }
 ?>
