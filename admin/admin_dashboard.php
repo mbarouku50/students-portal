@@ -8,7 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit();
 }
 
-include("connection.php");
+include("../connection.php");
 ?>
 
 <!DOCTYPE html>
