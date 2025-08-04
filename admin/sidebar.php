@@ -1,3 +1,24 @@
+<?php
+include("../connection.php");
+
+// Get counts from database
+$pending_print_count = 0;
+$total_users_count = 0;
+
+// Count pending print requests
+$pending_query = "SELECT COUNT(*) as count FROM print_submissions WHERE status = 'pending'";
+$pending_result = $conn->query($pending_query);
+if ($pending_result) {
+    $pending_print_count = $pending_result->fetch_assoc()['count'];
+}
+
+// Count total users (adjust table name as needed)
+$users_query = "SELECT COUNT(*) as count FROM users";
+$users_result = $conn->query($users_query);
+if ($users_result) {
+    $total_users_count = $users_result->fetch_assoc()['count'];
+}
+?>
 <style>
     :root {
         --sidebar-bg: #1e293b;
@@ -367,34 +388,34 @@
     <div class="sidebar-header">Navigation</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="admin_dashboard.php" class="active">
+            <a href="admin_dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'admin_dashboard.php' ? 'active' : '' ?>">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
         </li>
         <li>
-            <a href="manage_users.php">
+            <a href="manage_users.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_users.php' ? 'active' : '' ?>">
                 <i class="fas fa-users-cog"></i>
                 <span>Manage Users</span>
-                <span class="badge">5</span>
+                <span class="badge"><?php echo $total_users_count; ?></span>
             </a>
         </li>
         <li>
-            <a href="manage_documents.php">
+            <a href="manage_documents.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_documents.php' ? 'active' : '' ?>">
                 <i class="fas fa-file-alt"></i>
                 <span>Documents</span>
             </a>
         </li>
         <li>
-            <a href="manage_courses.php">
+            <a href="manage_courses.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_courses.php' ? 'active' : '' ?>">
                 <i class="fas fa-book-open"></i>
                 <span>Courses</span>
             </a>
         </li>
         <li>
-            <a href="admin_register_stationery.php">
+            <a href="admin_register_stationery.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'admin_register_stationery.php' ? 'active' : '' ?>">
                 <i class="fas fa-book-open"></i>
-                <span>stationary</span>
+                <span>Stationary</span>
             </a>
         </li>
     </ul>
@@ -402,16 +423,16 @@
     <div class="sidebar-header">Reports</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="reports.php">
+            <a href="reports.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : '' ?>">
                 <i class="fas fa-chart-bar"></i>
                 <span>Analytics</span>
             </a>
         </li>
         <li>
-            <a href="print_requests.php">
+            <a href="print_requests.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'print_requests.php' ? 'active' : '' ?>">
                 <i class="fas fa-print"></i>
                 <span>Print Requests</span>
-                <span class="badge">12</span>
+                <span class="badge"><?php echo $pending_print_count; ?></span>
             </a>
         </li>
     </ul>
@@ -419,13 +440,13 @@
     <div class="sidebar-header">System</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="system_settings.php">
+            <a href="system_settings.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'system_settings.php' ? 'active' : '' ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
         </li>
         <li>
-            <a href="backup.php">
+            <a href="backup.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'backup.php' ? 'active' : '' ?>">
                 <i class="fas fa-database"></i>
                 <span>Backups</span>
             </a>
@@ -434,10 +455,10 @@
     
     <div class="sidebar-footer">
         <div class="user-profile">
-            <div class="user-avatar">AD</div>
+            <div class="user-avatar"><?php echo substr($_SESSION['stationary_admin_name'] ?? 'AD', 0, 2); ?></div>
             <div class="user-info">
-                <div class="user-name">Admin User</div>
-                <div class="user-role">Super Administrator</div>
+                <div class="user-name"><?php echo htmlspecialchars($_SESSION['stationary_admin_name'] ?? 'Admin User'); ?></div>
+                <div class="user-role"><?php echo htmlspecialchars($_SESSION['stationary_admin_role'] ?? 'Administrator'); ?></div>
             </div>
         </div>
         

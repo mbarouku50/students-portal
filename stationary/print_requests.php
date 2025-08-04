@@ -10,7 +10,7 @@ include("../connection.php");
 // Handle print status update
 if (isset($_POST['mark_printed'])) {
     $request_id = $_POST['request_id'];
-    $update_query = "UPDATE print_submissions SET status = 'completed', printed_date = NOW() WHERE id = ?";
+    $update_query = "UPDATE print_submissions SET status = 'completed', submission_date = NOW() WHERE id = ?";
     $stmt = $conn->prepare($update_query);
     $stmt->bind_param("i", $request_id);
     $stmt->execute();
@@ -332,6 +332,12 @@ if (isset($_POST['mark_printed'])) {
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .document-preview {
+            width: 100%;
+            height: 70vh;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
          .modal {
             display: none;
             position: fixed;
@@ -385,6 +391,9 @@ if (isset($_POST['mark_printed'])) {
             margin-top: 1.5rem;
             padding-top: 1rem;
             border-top: 1px solid var(--border-color);
+        }
+        .modal.show {
+            display: flex;
         }
         
         .document-preview {
@@ -555,52 +564,54 @@ if (isset($_POST['mark_printed'])) {
             </thead>
             <tbody>
                 <?php
-                $pending_query = "SELECT * FROM print_submissions WHERE status = 'pending' ORDER BY submission_date DESC";
-                $pending_result = $conn->query($pending_query);
-                
-                if ($pending_result && $pending_result->num_rows > 0) {
-                    while ($row = $pending_result->fetch_assoc()) {
-                        echo '<tr>';
-                        echo '<td>#' . htmlspecialchars($row['id']) . '</td>';
-                        echo '<td>
-                                <div class="user-info">
-                                    <div class="user-name">' . htmlspecialchars($row['name']) . '</div>
-                                    <div class="user-meta">ID: ' . htmlspecialchars($row['user_id']) . '</div>
-                                </div>
-                              </td>';
-                        echo '<td>' . htmlspecialchars($row['document_name']) . '</td>';
-                        echo '<td>
-                                <div class="request-details">
-                                    <div><strong>Copies:</strong> ' . htmlspecialchars($row['copies']) . '</div>
-                                    <div><strong>Type:</strong> ' . htmlspecialchars($row['color']) . '</div>
-                                    <div><strong>Pages:</strong> ' . htmlspecialchars($row['pages']) . '</div>
-                                </div>
-                              </td>';
-                        echo '<td>' . date('M d, Y h:i A', strtotime($row['submission_date'])) . '</td>';
-                        echo '<td><span class="status-badge status-pending">Pending</span></td>';
-                        
-                        echo '<td>
-                                <div class="btn-group">
-                                    <button class="action-btn btn-primary view-document" 
-                                            data-id="' . $row['id'] . '" 
-                                            data-document="' . htmlspecialchars($row['document_name']) . '"
-                                            data-path="' . htmlspecialchars($row['file_path']) . '">
-                                        <i class="fas fa-eye"></i> View
+            $pending_query = "SELECT * FROM print_submissions WHERE status = 'pending' ORDER BY submission_date DESC";
+            $pending_result = $conn->query($pending_query);
+            
+            if ($pending_result && $pending_result->num_rows > 0) {
+                while ($row = $pending_result->fetch_assoc()) {
+                    echo '<tr>';
+                    echo '<td>#' . htmlspecialchars($row['id'] ?? '') . '</td>';
+                    echo '<td>
+                            <div class="user-info">
+                                <div class="user-name">' . htmlspecialchars($row['name'] ?? 'Unknown') . '</div>
+                                <div class="user-meta">ID: ' . htmlspecialchars($row['user_id'] ?? 'N/A') . '</div>
+                                <div class="user-meta">Phone: ' . htmlspecialchars($row['phone'] ?? 'N/A') . '</div>
+                            </div>
+                          </td>';
+                    echo '<td>' . htmlspecialchars($row['document_name'] ?? 'Untitled') . '</td>';
+                    echo '<td>
+                            <div class="request-details">
+                                <div><strong>Copies:</strong> ' . htmlspecialchars($row['copies'] ?? '1') . '</div>
+                                <div><strong>Type:</strong> ' . htmlspecialchars($row['color'] ?? 'Black & White') . '</div>
+                                <div><strong>Station:</strong> ' . htmlspecialchars($row['station'] ?? 'N/A') . '</div>
+                                ' . (!empty($row['notes']) ? '<div><strong>Notes:</strong> ' . htmlspecialchars($row['notes']) . '</div>' : '') . '
+                            </div>
+                          </td>';
+                    echo '<td>' . date('M d, Y h:i A', strtotime($row['submission_date'] ?? 'now')) . '</td>';
+                    echo '<td><span class="status-badge status-pending">Pending</span></td>';
+                    
+                    echo '<td>
+                            <div class="btn-group">
+                                <button class="action-btn btn-primary view-document" 
+                                        data-id="' . ($row['id'] ?? '') . '" 
+                                        data-document="' . htmlspecialchars($row['document_name'] ?? '') . '"
+                                        data-path="' . htmlspecialchars($row['file_path'] ?? '') . '">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="request_id" value="' . ($row['id'] ?? '') . '">
+                                    <button type="submit" name="mark_printed" class="action-btn btn-success">
+                                        <i class="fas fa-check"></i> Complete
                                     </button>
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="request_id" value="' . $row['id'] . '">
-                                        <button type="submit" name="mark_printed" class="action-btn btn-success">
-                                            <i class="fas fa-check"></i> Complete
-                                        </button>
-                                    </form>
-                                </div>
-                              </td>';
-                        echo '</tr>';
-                    }
-                } else {
-                    echo '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-light);">No pending print requests found.</td></tr>';
+                                </form>
+                            </div>
+                          </td>';
+                    echo '</tr>';
                 }
-                ?>
+            } else {
+                echo '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-light);">No pending print requests found.</td></tr>';
+            }
+            ?>
             </tbody>
         </table>
     </div>
@@ -638,47 +649,46 @@ if (isset($_POST['mark_printed'])) {
             </thead>
             <tbody>
                 <?php
-                $completed_query = "SELECT * FROM print_submissions WHERE status = 'completed' ORDER BY printed_date DESC LIMIT 10";
-                $completed_result = $conn->query($completed_query);
-                
-                if ($completed_result && $completed_result->num_rows > 0) {
-                    while ($row = $completed_result->fetch_assoc()) {
-                        echo '<tr>';
-                        echo '<td>#' . htmlspecialchars($row['id']) . '</td>';
-                        echo '<td>
-                                <div class="user-info">
-                                    <div class="user-name">' . htmlspecialchars($row['name']) . '</div>
-                                    <div class="user-meta">ID: ' . htmlspecialchars($row['user_id']) . '</div>
-                                </div>
-                              </td>';
-                        echo '<td>' . htmlspecialchars($row['document_name']) . '</td>';
-                        echo '<td>
-                                <div class="request-details">
-                                    <div><strong>Copies:</strong> ' . htmlspecialchars($row['copies']) . '</div>
-                                    <div><strong>Type:</strong> ' . htmlspecialchars($row['color']) . '</div>
-                                    <div><strong>Pages:</strong> ' . htmlspecialchars($row['pages']) . '</div>
-                                </div>
-                              </td>';
-                        echo '<td>' . date('M d, Y h:i A', strtotime($row['submission_date'])) . '</td>';
-                        echo '<td>' . date('M d, Y h:i A', strtotime($row['printed_date'])) . '</td>';
-                        echo '<td><span class="status-badge status-completed">Completed</span></td>';
-                        
-                        echo '<td>
-                                <div class="action-buttons">
-                                    <a href="' . htmlspecialchars($row['file_path']) . '" target="_blank" class="action-btn btn-outline">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
-                                    <a href="#" class="action-btn btn-outline">
-                                        <i class="fas fa-redo"></i> Re-print
-                                    </a>
-                                </div>
-                              </td>';
-                        echo '</tr>';
-                    }
-                } else {
-                    echo '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-light);">No completed print requests found.</td></tr>';
+            $completed_query = "SELECT * FROM print_submissions WHERE status = 'completed' ORDER BY submission_date DESC LIMIT 10";
+            $completed_result = $conn->query($completed_query);
+            
+            if ($completed_result && $completed_result->num_rows > 0) {
+                while ($row = $completed_result->fetch_assoc()) {
+                    echo '<tr>';
+                    echo '<td>#' . htmlspecialchars($row['id'] ?? '') . '</td>';
+                    echo '<td>
+                            <div class="user-info">
+                                <div class="user-name">' . htmlspecialchars($row['name'] ?? 'Unknown') . '</div>
+                                <div class="user-meta">ID: ' . htmlspecialchars($row['user_id'] ?? 'N/A') . '</div>
+                            </div>
+                          </td>';
+                    echo '<td>' . htmlspecialchars($row['document_name'] ?? 'Untitled') . '</td>';
+                    echo '<td>
+                            <div class="request-details">
+                                <div><strong>Copies:</strong> ' . htmlspecialchars($row['copies'] ?? '1') . '</div>
+                                <div><strong>Type:</strong> ' . htmlspecialchars($row['color'] ?? 'Black & White') . '</div>
+                                <div><strong>Station:</strong> ' . htmlspecialchars($row['station'] ?? 'N/A') . '</div>
+                            </div>
+                          </td>';
+                    echo '<td>' . date('M d, Y h:i A', strtotime($row['submission_date'] ?? 'now')) . '</td>';
+                    echo '<td><span class="status-badge status-completed">Completed</span></td>';
+                    
+                    echo '<td>
+                            <div class="action-buttons">
+                                <a href="' . htmlspecialchars($row['file_path'] ?? '#') . '" target="_blank" class="action-btn btn-outline">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="#" class="action-btn btn-outline">
+                                    <i class="fas fa-redo"></i> Re-print
+                                </a>
+                            </div>
+                          </td>';
+                    echo '</tr>';
                 }
-                ?>
+            } else {
+                echo '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-light);">No completed print requests found.</td></tr>';
+            }
+            ?>
             </tbody>
         </table>
 
@@ -729,69 +739,86 @@ if (isset($_POST['mark_printed'])) {
 </div>
 
 <script>
-// Simple client-side search functionality
-document.getElementById('pending-search').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const rows = document.querySelectorAll('#pending-requests-table tbody tr');
-    
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    });
-});
+        // Simple client-side search functionality
+        document.getElementById('pending-search').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#pending-requests-table tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
 
-document.getElementById('completed-search').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const rows = document.querySelectorAll('#completed-requests-table tbody tr');
-    
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    });
-});
+        document.getElementById('completed-search').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#completed-requests-table tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
 
+        // Document preview modal functionality
+        const modal = document.getElementById('documentModal');
+        const viewButtons = document.querySelectorAll('.view-document');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        const modalDocName = document.getElementById('modalDocName');
+        const documentPreview = document.getElementById('documentPreview');
+        const modalRequestId = document.getElementById('modalRequestId');
+        const printButton = document.getElementById('printDocument');
+        const completeForm = document.getElementById('completeForm');
 
-// Document preview modal functionality
-const modal = document.getElementById('documentModal');
-const viewButtons = document.querySelectorAll('.view-document');
-const closeModalButtons = document.querySelectorAll('.close-modal');
-const modalDocName = document.getElementById('modalDocName');
-const documentPreview = document.getElementById('documentPreview');
-const modalRequestId = document.getElementById('modalRequestId');
-const printButton = document.getElementById('printDocument');
+        // View document button click handler
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const docName = this.getAttribute('data-document');
+                const docPath = this.getAttribute('data-path');
+                const requestId = this.getAttribute('data-id');
+                
+                modalDocName.textContent = docName;
+                documentPreview.src = docPath;
+                modalRequestId.value = requestId;
+                modal.classList.add('show');
+            });
+        });
 
-viewButtons.forEach(button => {
-    button.addEventListener('click', function() {
-        const docName = this.getAttribute('data-document');
-        const docPath = this.getAttribute('data-path');
-        const requestId = this.getAttribute('data-id');
-        
-        modalDocName.textContent = docName;
-        documentPreview.src = docPath;
-        modalRequestId.value = requestId;
-        modal.style.display = 'flex';
-    });
-});
+        // Close modal button click handler
+        closeModalButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                modal.classList.remove('show');
+                documentPreview.src = '';
+            });
+        });
 
-closeModalButtons.forEach(button => {
-    button.addEventListener('click', function() {
-        modal.style.display = 'none';
-        documentPreview.src = '';
-    });
-});
+        // Print button click handler
+        printButton.addEventListener('click', function() {
+            if (documentPreview.src && documentPreview.src !== 'about:blank') {
+                documentPreview.contentWindow.print();
+            }
+        });
 
-printButton.addEventListener('click', function() {
-    documentPreview.contentWindow.print();
-});
+        // Close modal when clicking outside the content
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                documentPreview.src = '';
+            }
+        });
 
-// Close modal when clicking outside the content
-modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-        modal.style.display = 'none';
-        documentPreview.src = '';
-    }
-});
-</script>
+        // Handle form submission for the modal's complete button
+        completeForm.addEventListener('submit', function(e) {
+            // The form will submit normally as it's a POST form
+        });
+
+        // Ensure regular complete buttons work
+        document.querySelectorAll('form[method="POST"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                // The form will submit normally
+            });
+        });
+        </script>
 
 <?php include 'footer.php'; ?>
 <?php $conn->close(); ?>
