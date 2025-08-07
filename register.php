@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 include("connection.php");
 
 // Initialize variables
@@ -30,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors['email'] = 'Invalid email format';
     } else {
         // Check if email already exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt = $conn->prepare("SELECT user_id  FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
@@ -48,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors['reg'] = 'Invalid registration number format (e.g., 03.2481.01.01.2023)';
     } else {
         // Check if reg number already exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE reg = ?");
+        $stmt = $conn->prepare("SELECT user_id FROM users WHERE reg = ?");
         $stmt->bind_param("s", $reg);
         $stmt->execute();
         $stmt->store_result();
@@ -104,7 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -364,19 +367,21 @@ $conn->close();
                     <label for="program">Program of Study</label>
                     <select id="program" name="program" required>
                         <option value="">Select your program</option>
-                        <option value="BACC" <?php echo (isset($program) && $program == 'BACC') ? 'selected' : ''; ?>>Bachelor Degree in Accountancy</option>
-                        <option value="BAF" <?php echo (isset($program) && $program == 'BAF') ? 'selected' : ''; ?>>Accounting and Finance</option>
-                        <option value="BAT" <?php echo (isset($program) && $program == 'BAT') ? 'selected' : ''; ?>>Accountancy and Taxation</option>
-                        <option value="BBF" <?php echo (isset($program) && $program == 'BBF') ? 'selected' : ''; ?>>Banking and Finance</option>
-                        <option value="BBA" <?php echo (isset($program) && $program == 'BBA') ? 'selected' : ''; ?>>Business Administration</option>
-                        <option value="BIT" <?php echo (isset($program) && $program == 'BIT') ? 'selected' : ''; ?>>Information Technology</option>
-                        <option value="BMES" <?php echo (isset($program) && $program == 'BMES') ? 'selected' : ''; ?>>Metrology and Standardization</option>
-                        <option value="BMK" <?php echo (isset($program) && $program == 'BMK') ? 'selected' : ''; ?>>Marketing</option>
-                        <option value="BMK-TEM" <?php echo (isset($program) && $program == 'BMK-TEM') ? 'selected' : ''; ?>>Marketing & Tourism/Events</option>
-                        <option value="BPS" <?php echo (isset($program) && $program == 'BPS') ? 'selected' : ''; ?>>Procurement & Supplies</option>
-                        <option value="BHRM" <?php echo (isset($program) && $program == 'BHRM') ? 'selected' : ''; ?>>Human Resources Management</option>
-                        <option value="BBSE" <?php echo (isset($program) && $program == 'BBSE') ? 'selected' : ''; ?>>Business Studies with Education</option>
-                        <option value="BRAM" <?php echo (isset($program) && $program == 'BRAM') ? 'selected' : ''; ?>>Records and Archives Management</option>
+                        <?php
+                        // Fetch programs from database
+                        $programQuery = "SELECT course_code, course_name FROM courses ORDER BY course_name";
+                        $programResult = $conn->query($programQuery);
+                        
+                        if ($programResult && $programResult->num_rows > 0) {
+                            while ($programRow = $programResult->fetch_assoc()) {
+                                $selected = (isset($program) && $program == $programRow['course_code']) ? 'selected' : '';
+                                echo '<option value="'.htmlspecialchars($programRow['course_code']).'" '.$selected.'>'
+                                    .htmlspecialchars($programRow['course_name']).'</option>';
+                            }
+                        } else {
+                            echo '<option value="">No programs available</option>';
+                        }
+                        ?>
                     </select>
                     <?php if (isset($errors['program'])): ?>
                         <div class="error"><?php echo $errors['program']; ?></div>
@@ -411,5 +416,7 @@ $conn->close();
     </div>
     
 <?php
-include("temperate/footer.php")
+// Close the connection just before including the footer
+$conn->close();
+include("temperate/footer.php");
 ?>

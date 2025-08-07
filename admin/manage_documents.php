@@ -1,85 +1,3 @@
-<?php
-// Database connection - make sure this path is correct
-include("../connection.php");
-
-// Handle file upload
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_document'])) {
-    $course = $conn->real_escape_string($_POST['course']);
-    $document_type = $conn->real_escape_string($_POST['document_type']);
-    $year = $conn->real_escape_string($_POST['year']);
-    $description = $conn->real_escape_string($_POST['description']);
-    $admin_id = $_SESSION['admin_id'];
-    
-    // File upload handling
-    $target_dir = "uploads/coverpages/";
-    $file_name = basename($_FILES["document_file"]["name"]);
-    $file_type = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-    $new_file_name = "coverpage_" . time() . "_" . uniqid() . "." . $file_type;
-    $target_file = $target_dir . $new_file_name;
-    
-    // Check if file is a valid document
-    $allowed_types = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
-    if (!in_array($file_type, $allowed_types)) {
-        $upload_error = "Only PDF, DOC, DOCX, PNG, JPG files are allowed.";
-    } elseif ($_FILES["document_file"]["size"] > 5000000) { // 5MB limit
-        $upload_error = "File is too large. Maximum size is 5MB.";
-    } elseif (move_uploaded_file($_FILES["document_file"]["tmp_name"], $target_file)) {
-        // Insert into database - modified for your schema
-        $sql = "INSERT INTO coverpage_documents 
-                (course, document_type, year, description, file_name, file_path, file_type, uploaded_by, uploaded_at) 
-                VALUES ('$course', '$document_type', '$year', '$description', '$file_name', '$target_file', '$file_type', '$admin_id', NOW())";
-        
-        if ($conn->query($sql)) {
-            $upload_success = "Document uploaded successfully!";
-        } else {
-            $upload_error = "Error saving to database: " . $conn->error;
-            // Delete the uploaded file if database insert failed
-            unlink($target_file);
-        }
-    } else {
-        $upload_error = "Sorry, there was an error uploading your file.";
-    }
-}
-
-// Handle document deletion
-if (isset($_GET['delete'])) {
-    $id = $conn->real_escape_string($_GET['delete']);
-    
-    // Get file path first
-    $sql = "SELECT file_path FROM coverpage_documents WHERE id = '$id'";
-    $result = $conn->query($sql);
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $file_path = $row['file_path'];
-        
-        // Delete from database
-        $delete_sql = "DELETE FROM coverpage_documents WHERE id = '$id'";
-        if ($conn->query($delete_sql)) {
-            // Delete the file
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
-            $delete_success = "Document deleted successfully!";
-        } else {
-            $delete_error = "Error deleting document: " . $conn->error;
-        }
-    } else {
-        $delete_error = "Document not found!";
-    }
-}
-
-// Fetch all documents with admin name - modified for your schema
-$documents = [];
-$sql = "SELECT cd.*, a.fullname as uploaded_by_name 
-        FROM coverpage_documents cd
-        JOIN admin a ON cd.uploaded_by = a.admin_id
-        ORDER BY cd.uploaded_at DESC";
-$result = $conn->query($sql);
-if ($result->num_rows > 0) {
-    $documents = $result->fetch_all(MYSQLI_ASSOC);
-}
-?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -404,11 +322,11 @@ if ($result->num_rows > 0) {
             </div>
             <div class="user-menu">
                 <div class="user-info">
-                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['admin_fullname']); ?></div>
+                    <div class="user-name"></div>
                     <div class="user-role">Administrator</div>
                 </div>
                 <div class="avatar">
-                    <?php echo strtoupper(substr($_SESSION['admin_fullname'], 0, 1)); ?>
+                    
                 </div>
             </div>
         </div>
@@ -416,18 +334,6 @@ if ($result->num_rows > 0) {
         <!-- Upload Form -->
         <div class="form-container">
             <h2 class="form-title"><i class="fas fa-upload"></i> Upload New Cover Page</h2>
-            
-            <?php if (isset($upload_success)): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <?php echo $upload_success; ?>
-                </div>
-            <?php endif; ?>
-            
-            <?php if (isset($upload_error)): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> <?php echo $upload_error; ?>
-                </div>
-            <?php endif; ?>
             
             <form action="manage_documents.php" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
@@ -479,24 +385,6 @@ if ($result->num_rows > 0) {
         <!-- Documents Table -->
         <div class="table-container">
             <h2 class="form-title"><i class="fas fa-file-alt"></i> Existing Cover Pages</h2>
-            
-            <?php if (isset($delete_success)): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <?php echo $delete_success; ?>
-                </div>
-            <?php endif; ?>
-            
-            <?php if (isset($delete_error)): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> <?php echo $delete_error; ?>
-                </div>
-            <?php endif; ?>
-            
-            <?php if (empty($documents)): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-info-circle"></i> No cover page documents found. Upload your first document above.
-                </div>
-            <?php else: ?>
                 <table class="table">
                     <thead>
                         <tr>
@@ -509,50 +397,10 @@ if ($result->num_rows > 0) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($documents as $doc): ?>
-                            <tr>
-                                <td>
-                                    <div class="file-info">
-                                        <?php 
-                                        $icon = 'fa-file';
-                                        if ($doc['file_type'] == 'pdf') $icon = 'fa-file-pdf';
-                                        elseif (in_array($doc['file_type'], ['doc', 'docx'])) $icon = 'fa-file-word';
-                                        elseif (in_array($doc['file_type'], ['png', 'jpg', 'jpeg'])) $icon = 'fa-file-image';
-                                        ?>
-                                        <i class="fas <?php echo $icon; ?> file-icon"></i>
-                                        <div>
-                                            <div class="file-name"><?php echo htmlspecialchars($doc['file_name']); ?></div>
-                                            <div class="file-meta"><?php echo strtoupper($doc['file_type']); ?> • <?php echo date('M d, Y', strtotime($doc['uploaded_at'])); ?></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><?php echo htmlspecialchars($doc['course']); ?></td>
-                                <td>
-                                    <span class="badge badge-primary"><?php echo htmlspecialchars($doc['document_type']); ?></span>
-                                </td>
-                                <td><?php echo htmlspecialchars($doc['year']); ?></td>
-                                <td><?php echo htmlspecialchars($doc['uploaded_by_name']); ?></td>
-                                <td>
-                                    <div class="actions">
-                                        <a href="<?php echo $doc['file_path']; ?>" target="_blank" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-eye"></i> View
-                                        </a>
-                                        <a href="<?php echo $doc['file_path']; ?>" download class="btn btn-success btn-sm">
-                                            <i class="fas fa-download"></i> Download
-                                        </a>
-                                        <a href="manage_documents.php?delete=<?php echo $doc['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this document?');">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
+                       
                     </tbody>
                 </table>
-            <?php endif; ?>
         </div>
     </main>
-
-    <?php $conn->close(); ?>
 </body>
 </html>
