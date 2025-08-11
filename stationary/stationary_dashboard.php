@@ -1,5 +1,6 @@
 <?php
 session_start();
+// Change this check to match what you set in admin_login.php
 if (!isset($_SESSION['stationary_admin_id'])) {
     header('Location: ../admin/admin_login.php');
     exit();

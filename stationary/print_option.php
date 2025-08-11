@@ -1,6 +1,27 @@
 <?php
 include("temperate/header.php");
 include("../connection.php");
+
+// Handle form submission for typed content
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['typed-content'])) {
+    $name = $conn->real_escape_string($_POST['name']);
+    $phone = $conn->real_escape_string($_POST['phone']);
+    $stationery_id = intval($_POST['station']);
+    $content = $conn->real_escape_string($_POST['typed-content']);
+    $copies = intval($_POST['copies']);
+    $color = $_POST['color'] == 'color' ? 'color' : 'black';
+    $notes = $conn->real_escape_string($_POST['notes']);
+    
+    $sql = "INSERT INTO print_jobs (user_name, phone_number, stationery_id, content, copies, print_type, special_instructions)
+            VALUES ('$name', '$phone', $stationery_id, '$content', $copies, '$color', '$notes')";
+    
+    if ($conn->query($sql)) {
+        echo "<script>alert('Print job submitted successfully!');</script>";
+    } else {
+        echo "<script>alert('Error submitting print job: " . $conn->error . "');</script>";
+    }
+}
+
 // Fetch all stationery items
 $stationeryItems = [];
 $result = $conn->query("SELECT * FROM stationery ORDER BY stationery_id DESC");
@@ -71,7 +92,7 @@ $selected_stationery_id = isset($_GET['stationery_id']) ? intval($_GET['statione
         <!-- Type Document Section -->
         <div class="editor-section" id="editor-section">
             <h3>Type Your Document</h3>
-            <form action="upload_print.php" method="POST" onsubmit="return saveAndSubmitEditorContent(this)">
+            <form action="print_option.php" method="POST" onsubmit="return saveAndSubmitEditorContent(this)">
                 <div class="editor-toolbar">
                     <button type="button" onclick="format('bold')"><b>B</b></button>
                     <button type="button" onclick="format('italic')"><i>I</i></button>
@@ -186,7 +207,7 @@ $selected_stationery_id = isset($_GET['stationery_id']) ? intval($_GET['statione
         <!-- Edit & Print Section -->
         <div class="edit-section" id="edit-section">
             <h3>Upload and Edit Your Document</h3>
-            <form id="edit-upload-form" enctype="multipart/form-data" onsubmit="return handleEditUpload(event)">
+            <form action="print_option.php" id="edit-upload-form" enctype="multipart/form-data" onsubmit="return handleEditUpload(event)">
                 <div class="form-group">
                     <label for="edit-file">Upload Document (<b>TXT or DOCX only</b>)</label>
                     <input type="file" name="edit-file" id="edit-file" accept=".txt,.docx" required>

@@ -1,4 +1,4 @@
-<?php
+this is print_requests.php   <?php
 session_start();
 // Change this check to match what you set in admin_login.php
 if (!isset($_SESSION['stationary_admin_id'])) {
@@ -9,7 +9,7 @@ if (!isset($_SESSION['stationary_admin_id'])) {
 include("../connection.php");
 
 // Get the stationery ID of the logged-in admin
-$stationery_id = $_SESSION['stationary_id'] ?? null; 
+$stationery_id = $_SESSION['stationery_id'] ?? null;
 if (!$stationery_id) {
     die("Stationery ID not found in session. Please log in again.");
 }
@@ -969,4 +969,4 @@ if (isset($_POST['update_status'])) {
     </script>
 
 <?php include 'footer.php'; ?>
-<?php $conn->close(); ?>
+<?php $conn->close(); ?>   Stationery ID not found in session. Please log in again.

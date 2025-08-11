@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="admin-login-container">
         <div class="admin-login-header">
-            <h1><i class="fas fa-lock"></i> Admin Portal</h1>
+            <h1><i class="fas fa-lock"></i> Admin || stationary Portal</h1>
             <p>CBE Doc's Store Management System</p>
         </div>
         
@@ -205,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         <form class="admin-login-form" method="POST">
             <div class="form-group">
-                <label for="email">Admin Email</label>
+                <label for="email">Admin || stationary Email</label>
                 <input type="email" id="email" name="email" required>
             </div>
             
@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <button type="submit" class="btn">Login as Admin</button>
+            <button type="submit" class="btn">Login as Admin || stationary</button>
         </form>
         
         <div class="admin-login-footer">
