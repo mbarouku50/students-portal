@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Allow direct access to files in uploads directory
+    RewriteCond %{REQUEST_URI} ^/students-portal/stationary/uploads/ [NC]
+    RewriteRule ^ - [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(pdf|doc|docx|xls|xlsx|ppt|pptx|jpg|jpeg|png|gif|txt)$">
+        Header set Content-Disposition inline
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+</IfModule>
