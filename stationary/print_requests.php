@@ -18,6 +18,19 @@ $stmt->execute();
 $result = $stmt->get_result();
 $print_jobs = $result->fetch_all(MYSQLI_ASSOC);
 
+// Separate jobs by status
+$active_jobs = array_filter($print_jobs, function($job) {
+    return $job['status'] !== 'completed' && $job['status'] !== 'cancelled';
+});
+
+$completed_jobs = array_filter($print_jobs, function($job) {
+    return $job['status'] === 'completed';
+});
+
+$cancelled_jobs = array_filter($print_jobs, function($job) {
+    return $job['status'] === 'cancelled';
+});
+
 // Status colors for badges
 $status_colors = [
     'pending' => 'warning',
@@ -49,10 +62,67 @@ $status_colors = [
             --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #f5f7fb;
             color: var(--dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            padding: 10px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--dark)
+        }
+
+        .header-title p {
+            color: var(--gray);
+            margin-bottom: 0;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-profile img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-info h4 {
+            margin-bottom: 2px;
+            font-size: 16px;
+        }
+
+        .user-info p {
+            margin-bottom: 0;
+            font-size: 13px;
+            color: var(--gray);
         }
 
         .card {
@@ -197,6 +267,97 @@ $status_colors = [
             display: inline-block;
             margin-left: 0.5rem;
         }
+
+        .nav-tabs {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            padding: 0.75rem 1.25rem;
+            color: var(--gray);
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary);
+            background: transparent;
+            border-color: var(--primary);
+        }
+
+        .stats-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: var(--card-shadow);
+        }
+
+        .stats-card i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .stats-card h3 {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stats-card p {
+            color: var(--gray);
+            margin-bottom: 0;
+        }
+
+        .stats-pending { border-top: 4px solid #f8961e; }
+        .stats-processing { border-top: 4px solid #4cc9f0; }
+        .stats-completed { border-top: 4px solid #43a047; }
+        .stats-cancelled { border-top: 4px solid #f72585; }
+
+        .stats-pending i { color: #f8961e; }
+        .stats-processing i { color: #4cc9f0; }
+        .stats-completed i { color: #43a047; }
+        .stats-cancelled i { color: #f72585; }
+
+        .job-table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            padding-left: 40px;
+            border-radius: 25px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 10px;
+            color: var(--gray);
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+        
+        .action-cell {
+            min-width: 200px;
+        }
+        
+        /* Toast styling */
+        .toast-container {
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
@@ -218,68 +379,256 @@ $status_colors = [
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title">All Print Jobs</h5>
-                <div>
-                    <span class="badge bg-light text-dark">
-                        <i class="fas fa-print me-1"></i>
-                        <?= count($print_jobs) ?> Jobs
-                    </span>
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stats-card stats-pending">
+                    <i class="fas fa-print"></i>
+                    <h3><?= count($active_jobs) ?></h3>
+                    <p>Active Print Jobs</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card stats-completed">
+                    <i class="fas fa-check-circle"></i>
+                    <h3><?= count($completed_jobs) ?></h3>
+                    <p>Completed Jobs</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card stats-cancelled">
+                    <i class="fas fa-times-circle"></i>
+                    <h3><?= count($cancelled_jobs) ?></h3>
+                    <p>Cancelled Jobs</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs for different job statuses -->
+        <ul class="nav nav-tabs" id="jobTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab">
+                    Active Jobs <span class="badge bg-primary"><?= count($active_jobs) ?></span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
+                    Completed Jobs <span class="badge bg-success"><?= count($completed_jobs) ?></span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cancelled-tab" data-bs-toggle="tab" data-bs-target="#cancelled" type="button" role="tab">
+                    Cancelled Jobs <span class="badge bg-danger"><?= count($cancelled_jobs) ?></span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="jobTabsContent">
+            <!-- Active Jobs Tab -->
+            <div class="tab-pane fade show active" id="active" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">Active Print Jobs</h5>
+                        <div>
+                            <span class="badge bg-primary">
+                                <i class="fas fa-print me-1"></i>
+                                <?= count($active_jobs) ?> Jobs
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="activeSearch" class="form-control search-input" placeholder="Search active jobs...">
+                        </div>
+
+                        <?php if (count($active_jobs) > 0): ?>
+                            <div class="table-responsive job-table-container">
+                                <table class="table table-hover" id="activeTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Job ID</th>
+                                            <th>Customer</th>
+                                            <th>Phone</th>
+                                            <th>Type</th>
+                                            <th>Copies</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th class="action-cell">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($active_jobs as $job): ?>
+                                            <tr>
+                                                <td class="searchable">#<?= htmlspecialchars($job['job_id']) ?></td>
+                                                <td class="searchable"><?= htmlspecialchars($job['user_name']) ?></td>
+                                                <td class="searchable"><?= htmlspecialchars($job['phone_number']) ?></td>
+                                                <td class="searchable">
+                                                    <?= ucfirst(htmlspecialchars($job['print_type'])) ?>
+                                                    <?php if ($job['copies'] > 1): ?>
+                                                        <span class="badge bg-light text-dark"><?= $job['copies'] ?> copies</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="searchable"><?= htmlspecialchars($job['copies']) ?></td>
+                                                <td class="searchable"><?= date('M d, Y h:i A', strtotime($job['created_at'])) ?></td>
+                                                <td class="searchable">
+                                                    <span class="badge badge-<?= $status_colors[$job['status']] ?>">
+                                                        <?= ucfirst(htmlspecialchars($job['status'])) ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary view-details" data-jobid="<?= $job['job_id'] ?>">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-success update-status" data-jobid="<?= $job['job_id'] ?>" data-status="completed">
+                                                        <i class="fas fa-check"></i> Complete
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger update-status" data-jobid="<?= $job['job_id'] ?>" data-status="cancelled">
+                                                        <i class="fas fa-times"></i> Cancel
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-print"></i>
+                                <h4>No Active Print Jobs</h4>
+                                <p>There are currently no active print requests for your stationary.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
-            <?php if (count($print_jobs) > 0): ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Job ID</th>
-                                <th>Customer</th>
-                                <th>Phone</th>
-                                <th>Type</th>
-                                <th>Copies</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($print_jobs as $job): ?>
-                                <tr>
-                                    <td>#<?= htmlspecialchars($job['job_id']) ?></td>
-                                    <td><?= htmlspecialchars($job['user_name']) ?></td>
-                                    <td><?= htmlspecialchars($job['phone_number']) ?></td>
-                                    <td>
-                                        <?= ucfirst(htmlspecialchars($job['print_type'])) ?>
-                                        <?php if ($job['copies'] > 1): ?>
-                                            <span class="badge bg-light text-dark"><?= $job['copies'] ?> copies</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?= htmlspecialchars($job['copies']) ?></td>
-                                    <td><?= date('M d, Y h:i A', strtotime($job['created_at'])) ?></td>
-                                    <td>
-                                        <span class="badge badge-<?= $status_colors[$job['status']] ?>">
-                                            <?= ucfirst(htmlspecialchars($job['status'])) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary view-details" data-jobid="<?= $job['job_id'] ?>">
-                                            <i class="fas fa-eye"></i> View
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+            <!-- Completed Jobs Tab -->
+            <div class="tab-pane fade" id="completed" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">Completed Jobs</h5>
+                        <span class="badge bg-success"><?= count($completed_jobs) ?> Jobs</span>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="completedSearch" class="form-control search-input" placeholder="Search completed jobs...">
+                        </div>
+
+                        <?php if (count($completed_jobs) > 0): ?>
+                            <div class="table-responsive job-table-container">
+                                <table class="table table-hover" id="completedTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Job ID</th>
+                                            <th>Customer</th>
+                                            <th>Phone</th>
+                                            <th>Type</th>
+                                            <th>Copies</th>
+                                            <th>Completed Date</th>
+                                            <th class="action-cell">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($completed_jobs as $job): ?>
+                                            <tr>
+                                                <td class="searchable">#<?= htmlspecialchars($job['job_id']) ?></td>
+                                                <td class="searchable"><?= htmlspecialchars($job['user_name']) ?></td>
+                                                <td class="searchable"><?= htmlspecialchars($job['phone_number']) ?></td>
+                                                <td class="searchable">
+                                                    <?= ucfirst(htmlspecialchars($job['print_type'])) ?>
+                                                    <?php if ($job['copies'] > 1): ?>
+                                                        <span class="badge bg-light text-dark"><?= $job['copies'] ?> copies</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="searchable"><?= htmlspecialchars($job['copies']) ?></td>
+                                                <td class="searchable"><?= date('M d, Y h:i A', strtotime($job['updated_at'] ?? $job['created_at'])) ?></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary view-details" data-jobid="<?= $job['job_id'] ?>">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <h4>No Completed Jobs</h4>
+                                <p>No print jobs have been completed yet.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-print"></i>
-                    <h4>No Print Jobs Found</h4>
-                    <p>There are currently no print requests for your stationary.</p>
+            </div>
+
+            <!-- Cancelled Jobs Tab -->
+            <div class="tab-pane fade" id="cancelled" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">Cancelled Jobs</h5>
+                        <span class="badge bg-danger"><?= count($cancelled_jobs) ?> Jobs</span>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="cancelledSearch" class="form-control search-input" placeholder="Search cancelled jobs...">
+                        </div>
+
+                        <?php if (count($cancelled_jobs) > 0): ?>
+                            <div class="table-responsive job-table-container">
+                                <table class="table table-hover" id="cancelledTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Job ID</th>
+                                            <th>Customer</th>
+                                            <th>Phone</th>
+                                            <th>Type</th>
+                                            <th>Copies</th>
+                                            <th>Cancelled Date</th>
+                                            <th class="action-cell">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($cancelled_jobs as $job): ?>
+                                            <tr>
+                                                <td class="searchable">#<?= htmlspecialchars($job['job_id']) ?></td>
+                                                <td class="searchable"><?= htmlspecialchars($job['user_name']) ?></td>
+                                                <td class="searchable"><?= htmlspecialchars($job['phone_number']) ?></td>
+                                                <td class="searchable">
+                                                    <?= ucfirst(htmlspecialchars($job['print_type'])) ?>
+                                                    <?php if ($job['copies'] > 1): ?>
+                                                        <span class="badge bg-light text-dark"><?= $job['copies'] ?> copies</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="searchable"><?= htmlspecialchars($job['copies']) ?></td>
+                                                <td class="searchable"><?= date('M d, Y h:i A', strtotime($job['updated_at'] ?? $job['created_at'])) ?></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary view-details" data-jobid="<?= $job['job_id'] ?>">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-times-circle"></i>
+                                <h4>No Cancelled Jobs</h4>
+                                <p>No print jobs have been cancelled.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            <?php endif; ?>
+            </div>
         </div>
     </div>
 
@@ -303,80 +652,242 @@ $status_colors = [
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(document).ready(function() {
-    // View job details
-    $('.view-details').click(function() {
-        const jobId = $(this).data('jobid');
+    <script>
+    $(document).ready(function() {
+        // Store original content for each table
+        const activeTableContent = $('#activeTable tbody').html();
+        const completedTableContent = $('#completedTable tbody').html();
+        const cancelledTableContent = $('#cancelledTable tbody').html();
         
-        // Show loading state
-        $('#jobDetailsContent').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">Loading job details...</p>
-            </div>
-        `);
-        
-        const modal = new bootstrap.Modal(document.getElementById('jobDetailsModal'));
-        modal.show();
-        
-        $.ajax({
-            url: 'get_job_details.php',
-            type: 'GET',
-            data: { job_id: jobId },
-            success: function(response) {
-                $('#jobDetailsContent').html(response);
-                
-                // Initialize print functionality
-                $('.print-job').click(function() {
-                    const fileUrl = $(this).data('file-url');
-                    const fileType = $(this).data('file-type');
-                    const jobId = $(this).data('job-id');
-                    
-                    if (fileType === 'pdf') {
-                        // For PDFs
-                        const pdfWindow = window.open(fileUrl, '_blank');
-                        pdfWindow.onload = function() {
-                            pdfWindow.print();
-                        };
-                    }
-                    else if (['doc', 'docx', 'xls', 'xlsx'].includes(fileType)) {
-                        // For Office docs - use Google Docs viewer
-                        const printWindow = window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + '/' + fileUrl)}&embedded=true&rm=minimal`, '_blank');
-                        setTimeout(() => {
-                            printWindow.print();
-                        }, 3000);
-                    }
-                    else {
-                        // For images and text
-                        const printWindow = window.open(fileUrl, '_blank');
-                        printWindow.onload = function() {
-                            printWindow.print();
-                        };
-                    }
-                    
-                    // Update status to completed
-                    $.post('update_job_status.php', {
-                        job_id: jobId,
-                        status: 'completed'
-                    });
-                });
-            },
-            error: function(xhr, status, error) {
-                console.error("AJAX Error:", status, error);
-                $('#jobDetailsContent').html(`
-                    <div class="alert alert-danger">
-                        <h5>Error Loading Details</h5>
-                        <p>Could not load job details. Please try again.</p>
-                        <p class="small text-muted">Error: ${xhr.status} ${xhr.statusText}</p>
-                    </div>
-                `);
+        // Search functionality for each table
+        $('#activeSearch').on('keyup', function() {
+            const value = $(this).val().toLowerCase();
+            
+            if (value.length === 0) {
+                // Restore original content if search is empty
+                $('#activeTable tbody').html(activeTableContent);
+                return;
             }
+            
+            $('#activeTable tbody tr').each(function() {
+                const $row = $(this);
+                let found = false;
+                
+                // Check only searchable cells (excluding action cells)
+                $row.find('.searchable').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    if (text.indexOf(value) > -1) {
+                        found = true;
+                        
+                        // Highlight the matching text
+                        const regex = new RegExp(value, 'gi');
+                        const originalText = $(this).text();
+                        $(this).html(originalText.replace(regex, function(match) {
+                            return '<span class="highlight">' + match + '</span>';
+                        }));
+                    }
+                });
+                
+                // Show or hide the row based on search results
+                $row.toggle(found);
+            });
         });
+        
+        $('#completedSearch').on('keyup', function() {
+            const value = $(this).val().toLowerCase();
+            
+            if (value.length === 0) {
+                // Restore original content if search is empty
+                $('#completedTable tbody').html(completedTableContent);
+                return;
+            }
+            
+            $('#completedTable tbody tr').each(function() {
+                const $row = $(this);
+                let found = false;
+                
+                // Check only searchable cells (excluding action cells)
+                $row.find('.searchable').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    if (text.indexOf(value) > -1) {
+                        found = true;
+                        
+                        // Highlight the matching text
+                        const regex = new RegExp(value, 'gi');
+                        const originalText = $(this).text();
+                        $(this).html(originalText.replace(regex, function(match) {
+                            return '<span class="highlight">' + match + '</span>';
+                        }));
+                    }
+                });
+                
+                // Show or hide the row based on search results
+                $row.toggle(found);
+            });
+        });
+        
+        $('#cancelledSearch').on('keyup', function() {
+            const value = $(this).val().toLowerCase();
+            
+            if (value.length === 0) {
+                // Restore original content if search is empty
+                $('#cancelledTable tbody').html(cancelledTableContent);
+                return;
+            }
+            
+            $('#cancelledTable tbody tr').each(function() {
+                const $row = $(this);
+                let found = false;
+                
+                // Check only searchable cells (excluding action cells)
+                $row.find('.searchable').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    if (text.indexOf(value) > -1) {
+                        found = true;
+                        
+                        // Highlight the matching text
+                        const regex = new RegExp(value, 'gi');
+                        const originalText = $(this).text();
+                        $(this).html(originalText.replace(regex, function(match) {
+                            return '<span class="highlight">' + match + '</span>';
+                        }));
+                    }
+                });
+                
+                // Show or hide the row based on search results
+                $row.toggle(found);
+            });
+        });
+        
+        // View job details
+        $(document).on('click', '.view-details', function() {
+            const jobId = $(this).data('jobid');
+            
+            // Show loading state
+            $('#jobDetailsContent').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading job details...</p>
+                </div>
+            `);
+            
+            const modal = new bootstrap.Modal(document.getElementById('jobDetailsModal'));
+            modal.show();
+            
+            $.ajax({
+                url: 'get_job_details.php',
+                type: 'GET',
+                data: { job_id: jobId },
+                success: function(response) {
+                    $('#jobDetailsContent').html(response);
+                    
+                    // Initialize print functionality
+                    $('.print-job').click(function() {
+                        const fileUrl = $(this).data('file-url');
+                        const fileType = $(this).data('file-type');
+                        const jobId = $(this).data('job-id');
+                        
+                        if (fileType === 'pdf') {
+                            // For PDFs
+                            const pdfWindow = window.open(fileUrl, '_blank');
+                            pdfWindow.onload = function() {
+                                pdfWindow.print();
+                            };
+                        }
+                        else if (['doc', 'docx', 'xls', 'xlsx'].includes(fileType)) {
+                            // For Office docs - use Google Docs viewer
+                            const printWindow = window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + '/' + fileUrl)}&embedded=true&rm=minimal`, '_blank');
+                            setTimeout(() => {
+                                printWindow.print();
+                            }, 3000);
+                        }
+                        else {
+                            // For images and text
+                            const printWindow = window.open(fileUrl, '_blank');
+                            printWindow.onload = function() {
+                                printWindow.print();
+                            };
+                        }
+                        
+                        // Update status to completed
+                        $.post('update_job_status.php', {
+                            job_id: jobId,
+                            status: 'completed'
+                        }, function() {
+                            // Reload page after status update
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        });
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                    $('#jobDetailsContent').html(`
+                        <div class="alert alert-danger">
+                            <h5>Error Loading Details</h5>
+                            <p>Could not load job details. Please try again.</p>
+                            <p class="small text-muted">Error: ${xhr.status} ${xhr.statusText}</p>
+                        </div>
+                    `);
+                }
+            });
+        });
+        
+        // Update job status
+        $(document).on('click', '.update-status', function() {
+            const jobId = $(this).data('jobid');
+            const status = $(this).data('status');
+            const button = $(this);
+            
+            // Show loading state on button
+            button.html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+            button.prop('disabled', true);
+            
+            $.post('update_job_status.php', {
+                job_id: jobId,
+                status: status
+            }, function(response) {
+                if (response.success) {
+                    // Show success message
+                    const toast = $(`
+                        <div class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    Job status updated successfully
+                                </div>
+                                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    `);
+                    
+                    $('.toast-container').append(toast);
+                    const bsToast = new bootstrap.Toast(toast);
+                    bsToast.show();
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    alert('Error updating job status: ' + response.message);
+                    button.html('<i class="fas fa-check"></i> Complete');
+                    button.prop('disabled', false);
+                }
+            }).fail(function() {
+                alert('Error updating job status. Please try again.');
+                button.html('<i class="fas fa-check"></i> Complete');
+                button.prop('disabled', false);
+            });
+        });
+        
+        // Create toast container if it doesn't exist
+        if ($('.toast-container').length === 0) {
+            $('body').append('<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
+        }
     });
-});
-</script>
+    </script>
 </body>
 </html>
