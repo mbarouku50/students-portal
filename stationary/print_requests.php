@@ -38,6 +38,15 @@ $status_colors = [
     'completed' => 'success',
     'cancelled' => 'danger'
 ];
+
+
+// Fetch shop details
+$shop_query = "SELECT * FROM stationery WHERE stationery_id = ?";
+$shop_stmt = $conn->prepare($shop_query);
+$shop_stmt->bind_param("i", $stationary_id);
+$shop_stmt->execute();
+$shop_result = $shop_stmt->get_result();
+$shop_data = $shop_result->fetch_assoc();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -371,7 +380,7 @@ $status_colors = [
             </div>
             
             <div class="user-profile">
-                <img src="https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['stationary_admin_name'] ?? 'Admin') ?>&background=4361ee&color=fff" alt="User">
+                <img src="<?= htmlspecialchars($shop_data['logo']) ?>" alt="Shop Logo" style="border-radius: 50%; width: 50px; height: 50px;">
                 <div class="user-info">
                     <h4><?= htmlspecialchars($_SESSION['stationary_admin_name'] ?? 'Admin') ?></h4>
                     <p>Stationary Admin</p>

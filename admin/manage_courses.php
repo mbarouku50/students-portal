@@ -360,6 +360,9 @@ if ($result->num_rows > 0) {
                                         <a href="upload_docs.php?course_id=<?php echo $course['course_id']; ?>&type=field">
                                             <i class="fas fa-map-marked-alt"></i> Field Reports
                                         </a>
+                                        <a href="upload_docs.php?course_id=<?php echo $course['course_id']; ?>&type=cover_pages">
+                                            <i class="fas fa-map-marked-alt"></i> Cover Pages
+                                        </a>
                                     </div>
                                 </div>
                         </div>

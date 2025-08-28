@@ -74,6 +74,16 @@ if ($result->num_rows > 0) {
                     <h3>Projects</h3>
                     <p>Sample research projects and reports</p>
                 </div>
+                <div class="doc-type">
+                    <i class="fas fa-project-diagram"></i>
+                    <h3>Field Reports</h3>
+                    <p>Sample field research reports</p>
+                </div>
+                <div class="doc-type">
+                    <i class="fas fa-project-diagram"></i>
+                    <h3>cover pages</h3>
+                    <p>Sample cover pages for all caus</p>
+                </div>
             </div>
         </div>
     </section>

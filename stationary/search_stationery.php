@@ -251,7 +251,28 @@ if ($result && $result->num_rows > 0) {
         .no-results.show {
             display: block;
         }
-        
+        .card-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+            border: 1px solid var(--border);
+            background: var(--light);
+        }
+        .card-header-flex {
+            display: flex;
+            align-items: center;
+        }
+        .card-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .extra-info {
+            font-size: 0.95rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
         /* Responsive styles */
         @media (max-width: 1024px) {
             .stationery-grid {
@@ -299,32 +320,38 @@ if ($result && $result->num_rows > 0) {
 </head>
 <body>
     <div class="main-container">
-        <div class="page-header">
-            <h1 class="page-title">Find Printing Stations</h1>
-            <p class="page-subtitle">Browse our network of authorized printing stations near you</p>
-        </div>
-        
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" id="search-input" placeholder="Search by name, location, or price...">
-        </div>
-        
-        <div class="filter-bar">
-            <button class="filter-btn active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="available">Available</button>
-            <button class="filter-btn" data-filter="cheap">Under 500 Tsh</button>
-            <button class="filter-btn" data-filter="premium">Premium</button>
-        </div>
-        
-        <div class="stationery-grid" id="stationery-grid">
-            <?php if (empty($stationeryItems)): ?>
-                <div class="no-results show">No printing stations found. Please check back later.</div>
-            <?php else: ?>
-                <?php foreach ($stationeryItems as $item): ?>
-                    <div class="stationery-card" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>" 
-                         data-location="<?= strtolower(htmlspecialchars($item['location'])) ?>"
-                         data-price="<?= htmlspecialchars($item['price']) ?>">
-                        <div class="card-header">
+    <div class="page-header">
+        <h1 class="page-title">Find Printing Stations</h1>
+        <p class="page-subtitle">Browse our network of authorized printing stations near you</p>
+    </div>
+
+    <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="search-input" id="search-input" placeholder="Search by name, location, or price...">
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="available">Available</button>
+        <button class="filter-btn" data-filter="cheap">Under 500 Tsh</button>
+        <button class="filter-btn" data-filter="premium">Premium</button>
+    </div>
+
+    <div class="stationery-grid" id="stationery-grid">
+        <?php if (empty($stationeryItems)): ?>
+            <div class="no-results show">No printing stations found. Please check back later.</div>
+        <?php else: ?>
+            <?php foreach ($stationeryItems as $item): ?>
+                <div class="stationery-card" 
+                     data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>" 
+                     data-location="<?= strtolower(htmlspecialchars($item['location'])) ?>"
+                     data-price="<?= htmlspecialchars($item['price']) ?>">
+                     
+                    <div class="card-header card-header-flex">
+                        <?php if(!empty($item['logo'])): ?>
+                            <img src="<?= htmlspecialchars($item['logo']) ?>" alt="Logo" class="card-logo">
+                        <?php endif; ?>
+                        <div class="card-details">
                             <h3 class="card-title">
                                 <i class="fas fa-store"></i>
                                 <?= htmlspecialchars($item['name']) ?>
@@ -333,100 +360,111 @@ if ($result && $result->num_rows > 0) {
                                 <i class="fas fa-map-marker-alt"></i>
                                 <?= htmlspecialchars($item['location']) ?>
                             </div>
-                        </div>
-                        
-                        <div class="card-body">
-                            <div class="contact-info">
-                                <div class="contact-item">
-                                    <i class="fas fa-phone"></i>
-                                    <a href="tel:<?= htmlspecialchars($item['phone']) ?>"><?= htmlspecialchars($item['phone']) ?></a>
+                            <?php if(!empty($item['address'])): ?>
+                                <div class="extra-info">
+                                    <i class="fas fa-home"></i> <?= htmlspecialchars($item['address']) ?>
                                 </div>
-                                <div class="contact-item">
-                                    <i class="fas fa-envelope"></i>
-                                    <a href="mailto:<?= htmlspecialchars($item['email']) ?>"><?= htmlspecialchars($item['email']) ?></a>
+                            <?php endif; ?>
+                            <?php if(!empty($item['opening_hours'])): ?>
+                                <div class="extra-info">
+                                    <i class="fas fa-clock"></i> <?= htmlspecialchars($item['opening_hours']) ?>
                                 </div>
-                                <div class="contact-item">
-                                    <i class="fab fa-whatsapp"></i>
-                                    <a href="https://wa.me/<?= htmlspecialchars($item['whatsapp']) ?>" target="_blank">Chat on WhatsApp</a>
-                                </div>
-                            </div>
+                            <?php endif; ?>
                             
-                            <div class="price-tag"><?= number_format($item['price'], 2) ?> Tsh per copy</div>
-                            
-                            <p class="card-description"><?= htmlspecialchars($item['description']) ?></p>
-                        </div>
-                        
-                        <div class="card-footer">
-                            <a href="print_option.php?stationery_id=<?= htmlspecialchars($item['stationery_id']) ?>" class="action-btn">
-                                <i class="fas fa-print"></i> Print at <?= htmlspecialchars($item['name']) ?>
-                            </a>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-            
-            <div class="no-results" id="no-results">No results match your search criteria.</div>
-        </div>
+
+                    <div class="card-body">
+                        <div class="contact-info">
+                            <div class="contact-item">
+                                <i class="fas fa-phone"></i>
+                                <a href="tel:<?= htmlspecialchars($item['phone']) ?>"><?= htmlspecialchars($item['phone']) ?></a>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-envelope"></i>
+                                <a href="mailto:<?= htmlspecialchars($item['email']) ?>"><?= htmlspecialchars($item['email']) ?></a>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fab fa-whatsapp"></i>
+                                <a href="https://wa.me/<?= htmlspecialchars($item['whatsapp']) ?>" target="_blank">Chat on WhatsApp</a>
+                            </div>
+                        </div>
+
+                        <div class="price-tag"><?= number_format($item['price'], 2) ?> Tsh per copy</div>
+
+                        <p class="card-description"><?= htmlspecialchars($item['description']) ?></p>
+                    </div>
+
+                    <div class="card-footer">
+                        <a href="print_option.php?stationery_id=<?= htmlspecialchars($item['stationery_id']) ?>" class="action-btn">
+                            <i class="fas fa-print"></i> Print at <?= htmlspecialchars($item['name']) ?>
+                        </a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+        <div class="no-results" id="no-results">No results match your search criteria.</div>
     </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search-input');
-            const stationeryGrid = document.getElementById('stationery-grid');
-            const noResults = document.getElementById('no-results');
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            
-            // Search functionality
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const stationeryGrid = document.getElementById('stationery-grid');
+        const noResults = document.getElementById('no-results');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            let hasResults = false;
+
+            document.querySelectorAll('.stationery-card').forEach(card => {
+                const name = card.getAttribute('data-name');
+                const location = card.getAttribute('data-location');
+                const price = card.getAttribute('data-price');
+
+                if (name.includes(searchTerm) || location.includes(searchTerm) || price.includes(searchTerm)) {
+                    card.style.display = 'block';
+                    hasResults = true;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            noResults.classList.toggle('show', !hasResults);
+        });
+
+        // Filter functionality
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+
+                const filter = this.getAttribute('data-filter');
                 let hasResults = false;
-                
+
                 document.querySelectorAll('.stationery-card').forEach(card => {
-                    const name = card.getAttribute('data-name');
-                    const location = card.getAttribute('data-location');
-                    const price = card.getAttribute('data-price');
-                    
-                    if (name.includes(searchTerm) || location.includes(searchTerm) || price.includes(searchTerm)) {
+                    const price = parseFloat(card.getAttribute('data-price'));
+
+                    if (filter === 'all' || 
+                        (filter === 'available' && price > 0) ||
+                        (filter === 'cheap' && price <= 500) ||
+                        (filter === 'premium' && price > 500)) {
                         card.style.display = 'block';
                         hasResults = true;
                     } else {
                         card.style.display = 'none';
                     }
                 });
-                
+
                 noResults.classList.toggle('show', !hasResults);
             });
-            
-            // Filter functionality
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Update active button
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    const filter = this.getAttribute('data-filter');
-                    let hasResults = false;
-                    
-                    document.querySelectorAll('.stationery-card').forEach(card => {
-                        const price = parseFloat(card.getAttribute('data-price'));
-                        
-                        if (filter === 'all' || 
-                            (filter === 'available' && price > 0) ||
-                            (filter === 'cheap' && price <= 500) ||
-                            (filter === 'premium' && price > 500)) {
-                            card.style.display = 'block';
-                            hasResults = true;
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-                    
-                    noResults.classList.toggle('show', !hasResults);
-                });
-            });
         });
-    </script>
+    });
+</script>
 
-    <?php include("temperate/footer.php"); ?>
+<?php include("temperate/footer.php"); ?>
 </body>
 </html>

@@ -306,10 +306,7 @@
             <i class="fas fa-store"></i>
             <span>Shop Settings</span>
         </a>
-        <a href="inventory.php" class="menu-item<?= basename($_SERVER['PHP_SELF']) == 'inventory.php' ? ' active' : '' ?>">
-            <i class="fas fa-boxes"></i>
-            <span>Inventory</span>
-        </a>
+        
         <p class="menu-title">Account</p>
         <a href="../admin/logout.php" class="menu-item">
             <i class="fas fa-sign-out-alt"></i>

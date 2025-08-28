@@ -14,7 +14,8 @@ $valid_types = [
     'past_exams' => 'Past Exams',
     'case_studies' => 'Case Studies',
     'projects' => 'Projects',
-    'field' => 'Field Reports'
+    'field' => 'Field Reports',
+    'cover_pages' => 'Cover Pages'
 ];
 
 if (!array_key_exists($doc_type, $valid_types)) {
@@ -42,72 +43,114 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['document'])) {
     $uploaded_by = $_SESSION['user_id'] ?? 0;
 
     // File upload configuration
-    $target_dir = "../uploads/documents/";
+    $target_dir = __DIR__ . "/uploads/documents/";
+    
+    // Create directory if it doesn't exist with proper permissions
     if (!file_exists($target_dir)) {
-        mkdir($target_dir, 0777, true);
+        if (!mkdir($target_dir, 0755, true)) {
+            $error = "Failed to create upload directory. Please check permissions.";
+        }
     }
     
-    $file_name = basename($_FILES["document"]["name"]);
-    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-    $new_file_name = uniqid() . '_' . time() . '.' . $file_ext;
-    $target_file = $target_dir . $new_file_name;
-    
-    // Validate file
-    $allowed_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt'];
-    $max_file_size = 10 * 1024 * 1024; // 10MB
-    
-    if (!in_array($file_ext, $allowed_types)) {
-        $error = "Sorry, only PDF, DOC, PPT, XLS, and TXT files are allowed.";
-    } elseif ($_FILES["document"]["size"] > $max_file_size) {
-        $error = "Sorry, your file is too large. Maximum 10MB allowed.";
-    } elseif (move_uploaded_file($_FILES["document"]["tmp_name"], $target_file)) {
-        // Determine the correct table based on year and semester
-        $table_name = strtolower($year) . '_year_sem' . $semester . '_documents';
+    // Check if directory is writable
+    if (file_exists($target_dir) && is_writable($target_dir)) {
+        $file_name = basename($_FILES["document"]["name"]);
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        $new_file_name = uniqid() . '_' . time() . '.' . $file_ext;
+        $target_file = $target_dir . $new_file_name;
         
-        // Check if table exists
-        $table_check = $conn->query("SHOW TABLES LIKE '$table_name'");
-        if ($table_check->num_rows == 0) {
-            $error = "Invalid year/semester combination";
-            unlink($target_file);
+        // Validate file
+        $allowed_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt'];
+        $max_file_size = 10 * 1024 * 1024; // 10MB
+        
+        if (!in_array($file_ext, $allowed_types)) {
+            $error = "Sorry, only PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, and TXT files are allowed.";
+        } elseif ($_FILES["document"]["size"] > $max_file_size) {
+            $error = "Sorry, your file is too large. Maximum 10MB allowed.";
         } else {
-            // Insert into the correct table
-            $sql = "INSERT INTO $table_name (
-                course_id, 
-                doc_type, 
-                title, 
-                description, 
-                file_path, 
-                file_name, 
-                file_size, 
-                file_type, 
-                level,
-                uploaded_by
-            ) VALUES (
-                '$course_id',
-                '$doc_type',
-                '$title',
-                '$description',
-                '$target_file',
-                '$file_name',
-                '{$_FILES["document"]["size"]}',
-                '$file_ext',
-                '$level',
-                '$uploaded_by'
-            )";
-            
-            if ($conn->query($sql)) {
-                $success = "Document uploaded successfully to $year Year Semester $semester!";
-                // Clear form
-                $_POST['document_title'] = $_POST['description'] = '';
+            // Check for upload errors
+            if ($_FILES["document"]["error"] !== UPLOAD_ERR_OK) {
+                $error = "Upload error: " . $this->getUploadError($_FILES["document"]["error"]);
+            } elseif (move_uploaded_file($_FILES["document"]["tmp_name"], $target_file)) {
+                // Determine the correct table based on year and semester
+                $table_name = strtolower($year) . '_year_sem' . $semester . '_documents';
+                
+                // Check if table exists
+                $table_check = $conn->query("SHOW TABLES LIKE '$table_name'");
+                if ($table_check->num_rows == 0) {
+                    $error = "Invalid year/semester combination. Table '$table_name' does not exist.";
+                    // Clean up uploaded file
+                    if (file_exists($target_file)) {
+                        unlink($target_file);
+                    }
+                } else {
+                    // Insert into the correct table
+                    $relative_file_path = "uploads/documents/" . $new_file_name;
+                    
+                    $sql = "INSERT INTO $table_name (
+                        course_id, 
+                        doc_type, 
+                        title, 
+                        description, 
+                        file_path, 
+                        file_name, 
+                        file_size, 
+                        file_type, 
+                        level,
+                        uploaded_by
+                    ) VALUES (
+                        '$course_id',
+                        '$doc_type',
+                        '$title',
+                        '$description',
+                        '$relative_file_path',
+                        '$file_name',
+                        '{$_FILES["document"]["size"]}',
+                        '$file_ext',
+                        '$level',
+                        '$uploaded_by'
+                    )";
+                    
+                    if ($conn->query($sql)) {
+                        $success = "Document uploaded successfully to $year Year Semester $semester!";
+                        // Clear form
+                        $_POST['document_title'] = $_POST['description'] = '';
+                    } else {
+                        $error = "Error saving to database: " . $conn->error;
+                        // Delete the uploaded file if DB insert failed
+                        if (file_exists($target_file)) {
+                            unlink($target_file);
+                        }
+                    }
+                }
             } else {
-                $error = "Error saving to database: " . $conn->error;
-                // Delete the uploaded file if DB insert failed
-                unlink($target_file);
+                $error = "Sorry, there was an error uploading your file. ";
+                $error .= "Please check file permissions or try again.";
+                
+                // Debug info (remove in production)
+                $error .= " Debug: Target file: " . $target_file;
+                $error .= " | Temp file: " . $_FILES["document"]["tmp_name"];
+                $error .= " | Writable: " . (is_writable($target_dir) ? 'Yes' : 'No');
             }
         }
     } else {
-        $error = "Sorry, there was an error uploading your file.";
+        $error = "Upload directory is not writable. Please check permissions for: " . $target_dir;
     }
+}
+
+// Helper function to get upload error messages
+function getUploadError($error_code) {
+    $errors = [
+        UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
+        UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.',
+        UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded.',
+        UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+        UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
+        UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+        UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.',
+    ];
+    
+    return $errors[$error_code] ?? 'Unknown upload error';
 }
 ?>
 
