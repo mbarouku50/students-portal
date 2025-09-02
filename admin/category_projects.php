@@ -2,12 +2,9 @@
 include("../connection.php");
 include("sidebar.php");
 
-
-// Get document type from URL if specified
-$doc_type = isset($_GET['type']) ? $_GET['type'] : '';
-$course_id = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
-$year = isset($_GET['year']) ? $_GET['year'] : '';
-$semester = isset($_GET['semester']) ? $_GET['semester'] : '';
+// Get document type from filename
+$current_file = basename(__FILE__, '.php');
+$doc_type = str_replace('category_', '', $current_file);
 
 // Valid document types
 $valid_types = [
@@ -21,6 +18,16 @@ $valid_types = [
     'cover_pages' => ['icon' => 'fa-file-image', 'name' => 'Cover Pages']
 ];
 
+// Check if the document type is valid
+if (!array_key_exists($doc_type, $valid_types)) {
+    header("Location: manage_documents.php");
+    exit();
+}
+
+$course_id = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
+$year = isset($_GET['year']) ? $_GET['year'] : '';
+$semester = isset($_GET['semester']) ? $_GET['semester'] : '';
+
 // Get all courses for filter
 $courses = [];
 $courses_result = $conn->query("SELECT course_id, course_code, course_name FROM courses ORDER BY course_code");
@@ -31,13 +38,8 @@ if ($courses_result && $courses_result->num_rows > 0) {
 }
 
 // Build the query to fetch documents
-$where_conditions = [];
-$query_params = [];
-
-if (!empty($doc_type) && array_key_exists($doc_type, $valid_types)) {
-    $where_conditions[] = "doc_type = ?";
-    $query_params[] = $doc_type;
-}
+$where_conditions = ["doc_type = ?"];
+$query_params = [$doc_type];
 
 if ($course_id > 0) {
     $where_conditions[] = "course_id = ?";
@@ -126,7 +128,7 @@ if (isset($_POST['delete_document'])) {
     $stmt->close();
     
     // Refresh the page to show updated list
-    header("Location: manage_documents.php?" . $_SERVER['QUERY_STRING']);
+    header("Location: " . basename(__FILE__) . "?" . $_SERVER['QUERY_STRING']);
     exit();
 }
 ?>
@@ -136,10 +138,11 @@ if (isset($_POST['delete_document'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Documents - CBE Doc's Store</title>
+    <title><?php echo $valid_types[$doc_type]['name']; ?> - CBE Doc's Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Same CSS as in manage_documents.php */
         :root {
             --primary: #4f46e5;
             --primary-light: #6366f1;
@@ -173,6 +176,9 @@ if (isset($_POST['delete_document'])) {
         
         .page-header {
             margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
         .page-title {
@@ -188,6 +194,25 @@ if (isset($_POST['delete_document'])) {
         .page-subtitle {
             color: var(--gray);
             font-size: 1.1rem;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
         }
         
         .filters-container {
@@ -481,59 +506,12 @@ if (isset($_POST['delete_document'])) {
             .stats-bar {
                 flex-direction: column;
             }
-        }
-        
-        .doc-types-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-        
-        .doc-type-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .doc-type-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--primary);
-        }
-        
-        .doc-type-card.active {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-        }
-        
-        .doc-type-card.active i,
-        .doc-type-card.active h3,
-        .doc-type-card.active p {
-            color: white;
-        }
-        
-        .doc-type-card i {
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-        
-        .doc-type-card h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--dark);
-        }
-        
-        .doc-type-card p {
-            color: var(--gray);
-            line-height: 1.6;
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
         }
     </style>
 </head>
@@ -542,8 +520,13 @@ if (isset($_POST['delete_document'])) {
     
     <main class="main-content">
         <div class="page-header">
-            <h1 class="page-title">Manage Documents</h1>
-            <p class="page-subtitle">View, manage, and organize all uploaded documents</p>
+            <div>
+                <h1 class="page-title"><?php echo $valid_types[$doc_type]['name']; ?></h1>
+                <p class="page-subtitle">View and manage all <?php echo strtolower($valid_types[$doc_type]['name']); ?> documents</p>
+            </div>
+            <a href="manage_documents.php" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to All Documents
+            </a>
         </div>
         
         <?php if (isset($success_message)): ?>
@@ -558,59 +541,32 @@ if (isset($_POST['delete_document'])) {
             </div>
         <?php endif; ?>
         
-        <!-- Document Types Grid -->
-        <div class="doc-types-grid">
-            <?php foreach ($valid_types as $type_key => $type_info): ?>
-                <a href="category_<?php echo $type_key; ?>.php" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
-                    <i class="fas <?php echo $type_info['icon']; ?>"></i>
-                    <h3><?php echo $type_info['name']; ?></h3>
-                    <p>
-                        <?php 
-                        $count = 0;
-                        foreach ($all_documents as $doc) {
-                            if ($doc['doc_type'] === $type_key) $count++;
-                        }
-                        echo $count . ' document' . ($count !== 1 ? 's' : '');
-                        ?>
-                    </p>
-                </a>
-            <?php endforeach; ?>
-        </div>
-        
         <!-- Statistics Bar -->
         <div class="stats-bar">
             <div class="stat-card">
                 <div class="stat-value"><?php echo count($all_documents); ?></div>
-                <div class="stat-label">Total Documents</div>
+                <div class="stat-label">Total <?php echo $valid_types[$doc_type]['name']; ?></div>
             </div>
             
             <div class="stat-card">
-                <div class="stat-value"><?php echo count($courses); ?></div>
-                <div class="stat-label">Available Courses</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value">8</div>
-                <div class="stat-label">Document Types</div>
+                <div class="stat-value"><?php 
+                    $unique_courses = [];
+                    foreach ($all_documents as $doc) {
+                        if (!in_array($doc['course_id'], $unique_courses)) {
+                            $unique_courses[] = $doc['course_id'];
+                        }
+                    }
+                    echo count($unique_courses);
+                ?></div>
+                <div class="stat-label">Courses with <?php echo strtolower($valid_types[$doc_type]['name']); ?></div>
             </div>
         </div>
         
         <!-- Filters -->
         <div class="filters-container">
-            <form method="GET" action="manage_documents.php">
+            <form method="GET" action="<?php echo basename(__FILE__); ?>">
+                <input type="hidden" name="type" value="<?php echo $doc_type; ?>">
                 <div class="filter-row">
-                    <div class="filter-group">
-                        <label class="filter-label">Document Type</label>
-                        <select name="type" class="filter-select">
-                            <option value="">All Types</option>
-                            <?php foreach ($valid_types as $type_key => $type_info): ?>
-                                <option value="<?php echo $type_key; ?>" <?php echo $doc_type === $type_key ? 'selected' : ''; ?>>
-                                    <?php echo $type_info['name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
                     <div class="filter-group">
                         <label class="filter-label">Course</label>
                         <select name="course_id" class="filter-select">
@@ -648,7 +604,7 @@ if (isset($_POST['delete_document'])) {
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter"></i> Apply Filters
                     </button>
-                    <a href="manage_documents.php" class="btn btn-secondary">
+                    <a href="<?php echo basename(__FILE__); ?>" class="btn btn-secondary">
                         <i class="fas fa-redo"></i> Clear Filters
                     </a>
                 </div>
@@ -660,7 +616,7 @@ if (isset($_POST['delete_document'])) {
             <?php if (empty($all_documents)): ?>
                 <div class="no-documents">
                     <i class="fas fa-file-alt"></i>
-                    <h3>No documents found</h3>
+                    <h3>No <?php echo strtolower($valid_types[$doc_type]['name']); ?> found</h3>
                     <p>Try adjusting your filters or upload new documents.</p>
                 </div>
             <?php else: ?>
@@ -734,16 +690,6 @@ if (isset($_POST['delete_document'])) {
     </main>
 
     <script>
-        // Add active class to clicked doc type cards
-        document.querySelectorAll('.doc-type-card').forEach(card => {
-            card.addEventListener('click', function() {
-                document.querySelectorAll('.doc-type-card').forEach(c => {
-                    c.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
-        });
-        
         // Auto-submit form when filters change
         document.querySelectorAll('.filter-select').forEach(select => {
             select.addEventListener('change', function() {

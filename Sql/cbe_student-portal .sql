@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 19, 2025 at 07:11 AM
+-- Generation Time: Sep 02, 2025 at 11:07 AM
 -- Server version: 10.11.13-MariaDB-0+deb12u1
 -- PHP Version: 8.2.29
 
@@ -140,6 +140,13 @@ CREATE TABLE `first_year_sem1_documents` (
   `uploaded_by` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `first_year_sem1_documents`
+--
+
+INSERT INTO `first_year_sem1_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`) VALUES
+(1, 1, 'cover_pages', 'DATABASE ESSENTIAL', '', 'uploads/documents/68b04e5a029d4_1756384858.docx', 'KILOSA DISTRICT HOSPITAL.docx', 12165, 'docx', 'bachelor', '2025-08-28 12:40:58', 0);
+
 -- --------------------------------------------------------
 
 --
@@ -228,8 +235,8 @@ CREATE TABLE `print_jobs` (
 --
 
 INSERT INTO `print_jobs` (`job_id`, `user_name`, `phone_number`, `stationery_id`, `content`, `file_path`, `copies`, `print_type`, `special_instructions`, `status`, `created_at`) VALUES
-(5, 'mbarouk hemed', '0627841861', 5, NULL, 'uploads/68a3047ae0292_SeifiPlastics_Website_Proposal.doc', 1, 'black', '', 'pending', '2025-08-18 10:46:18'),
-(6, 'mbarouk hemed', '0627841861', 5, NULL, 'uploads/68a3049a6d0d1_m_boy report.pdf', 1, 'black', '', 'completed', '2025-08-18 10:46:50'),
+(5, 'mbarouk hemed', '0627841861', 5, NULL, 'uploads/68a3047ae0292_SeifiPlastics_Website_Proposal.doc', 1, 'black', '', 'completed', '2025-08-18 10:46:18'),
+(6, 'mbarouk hemed', '0627841861', 5, NULL, 'uploads/68a3049a6d0d1_m_boy report.pdf', 1, 'black', '', 'pending', '2025-08-18 10:46:50'),
 (7, 'bee', '+255716501250', 1, NULL, 'uploads/68a304b6b4d99_GROUPS 2.pdf', 1, 'black', '', 'pending', '2025-08-18 10:47:18');
 
 -- --------------------------------------------------------
@@ -314,23 +321,27 @@ CREATE TABLE `stationery` (
   `stationery_id` int(11) NOT NULL,
   `name` varchar(100) NOT NULL,
   `location` varchar(100) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `email` varchar(100) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `phone` varchar(20) NOT NULL,
+  `email` varchar(100) NOT NULL,
   `whatsapp` varchar(30) DEFAULT NULL,
+  `opening_hours` text DEFAULT NULL,
   `description` text DEFAULT NULL,
+  `logo` varchar(255) DEFAULT NULL,
   `quantity` int(11) NOT NULL DEFAULT 0,
   `price` decimal(10,2) NOT NULL DEFAULT 0.00,
   `password` varchar(255) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp()
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `stationery`
 --
 
-INSERT INTO `stationery` (`stationery_id`, `name`, `location`, `phone`, `email`, `whatsapp`, `description`, `quantity`, `price`, `password`, `created_at`) VALUES
-(1, 'DIGITAL SOLUTIONS', 'CBE', '0716501250', 'digitalsolutions@gmail.com', '0716501250', 'your welcome to print with us thanks', 4, 100.00, '9e7d603f8e7dac32e54ced0eb3f9da384f912dce', '2025-07-31 21:08:17'),
-(5, 'AB STATIONARY', 'morogoro road', '0627841861', 'ab@gmail.com', '0627841861', 'huduma za uhakika 24 hours', 1, 100.00, 'e0da2182b62b121fd1e27906138fee2e17645b40', '2025-08-10 09:52:49');
+INSERT INTO `stationery` (`stationery_id`, `name`, `location`, `address`, `phone`, `email`, `whatsapp`, `opening_hours`, `description`, `logo`, `quantity`, `price`, `password`, `created_at`, `updated_at`) VALUES
+(1, 'DIGITAL SOLUTIONS', 'CBE', 'dar-es-salaam', '0716501250', 'digitalsolutions@gmail.com', '0716501250', '24/7', 'your welcome to print with us thanks', 'uploads/stationery_logos/stationery_1_1756371886.png', 4, 100.00, '9e7d603f8e7dac32e54ced0eb3f9da384f912dce', '2025-07-31 21:08:17', '2025-08-28 09:04:47'),
+(5, 'AB STATIONARY', 'CBE', 'dar-es-salaam', '0627841861', 'ab@gmail.com', '0627841861', '24/7', 'huduma za uhakika 24 hours', 'uploads/stationery_logos/stationery_5_1756374207.png', 0, 100.00, 'e0da2182b62b121fd1e27906138fee2e17645b40', '2025-08-10 09:52:49', '2025-08-28 09:50:36');
 
 -- --------------------------------------------------------
 
@@ -545,7 +556,7 @@ ALTER TABLE `documents`
 -- AUTO_INCREMENT for table `first_year_sem1_documents`
 --
 ALTER TABLE `first_year_sem1_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `first_year_sem2_documents`
