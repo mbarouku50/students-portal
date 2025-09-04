@@ -115,9 +115,10 @@ if (isset($_POST['delete_document'])) {
     $stmt->bind_param("i", $doc_id);
     
     if ($stmt->execute()) {
-        // Delete the actual file
-        if (file_exists("../" . $file_path)) {
-            unlink("../" . $file_path);
+        // Delete the actual file - add admin/ prefix to file path
+        $full_file_path = "../admin/" . $file_path;
+        if (file_exists($full_file_path)) {
+            unlink($full_file_path);
         }
         $success_message = "Document deleted successfully!";
     } else {
@@ -499,6 +500,8 @@ if (isset($_POST['delete_document'])) {
             border: 1px solid var(--border);
             transition: all 0.3s ease;
             cursor: pointer;
+            text-decoration: none;
+            color: inherit;
         }
         
         .doc-type-card:hover {
@@ -625,7 +628,7 @@ if (isset($_POST['delete_document'])) {
                     
                     <div class="filter-group">
                         <label class="filter-label">Year</label>
-                        <select name="year" class="filter-select">
+                        <select name="year" class .filter-select">
                             <option value="">All Years</option>
                             <option value="first" <?php echo $year === 'first' ? 'selected' : ''; ?>>First Year</option>
                             <option value="second" <?php echo $year === 'second' ? 'selected' : ''; ?>>Second Year</option>
@@ -709,11 +712,12 @@ if (isset($_POST['delete_document'])) {
                         </div>
                         
                         <div class="card-footer">
-                            <a href="../<?php echo htmlspecialchars($document['file_path']); ?>" 
+                            <!-- Fixed file paths - added admin/ prefix -->
+                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
                                class="btn btn-primary" download>
                                 <i class="fas fa-download"></i> Download
                             </a>
-                            <a href="../<?php echo htmlspecialchars($document['file_path']); ?>" 
+                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
                                class="btn btn-secondary" target="_blank">
                                 <i class="fas fa-eye"></i> View
                             </a>

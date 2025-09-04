@@ -1,6 +1,13 @@
 <?php
-include("../connection.php");
-include("sidebar.php");
+include("connection.php");
+
+session_start();
+
+// Check if user is logged in, if not redirect to login page
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 // Get document type from filename
 $current_file = basename(__FILE__, '.php');
@@ -20,7 +27,7 @@ $valid_types = [
 
 // Check if the document type is valid
 if (!array_key_exists($doc_type, $valid_types)) {
-    header("Location: manage_documents.php");
+    header("Location: index.php");
     exit();
 }
 
@@ -105,32 +112,17 @@ foreach ($semester_tables as $table) {
     }
 }
 
-// Handle document deletion
-if (isset($_POST['delete_document'])) {
-    $doc_id = intval($_POST['doc_id']);
-    $source_table = $_POST['source_table'];
-    $file_path = $_POST['file_path'];
-    
-    // Delete from database
-    $delete_sql = "DELETE FROM $source_table WHERE doc_id = ?";
-    $stmt = $conn->prepare($delete_sql);
-    $stmt->bind_param("i", $doc_id);
-    
-    if ($stmt->execute()) {
-        // Delete the actual file - add admin/ prefix to file path
-        $full_file_path = "../admin/" . $file_path;
-        if (file_exists($full_file_path)) {
-            unlink($full_file_path);
-        }
-        $success_message = "Document deleted successfully!";
-    } else {
-        $error_message = "Error deleting document: " . $conn->error;
-    }
-    $stmt->close();
-    
-    // Refresh the page to show updated list
-    header("Location: " . basename(__FILE__) . "?" . $_SERVER['QUERY_STRING']);
-    exit();
+// Filter by year and semester if selected
+if (!empty($year)) {
+    $all_documents = array_filter($all_documents, function($doc) use ($year) {
+        return $doc['year'] === $year;
+    });
+}
+
+if (!empty($semester)) {
+    $all_documents = array_filter($all_documents, function($doc) use ($semester) {
+        return $doc['semester'] === $semester;
+    });
 }
 ?>
 
@@ -141,9 +133,8 @@ if (isset($_POST['delete_document'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $valid_types[$doc_type]['name']; ?> - CBE Doc's Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Same CSS as in manage_documents.php */
         :root {
             --primary: #4f46e5;
             --primary-light: #6366f1;
@@ -169,10 +160,14 @@ if (isset($_POST['delete_document'])) {
             line-height: 1.6;
         }
         
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
         .main-content {
-            margin-left: 280px;
-            padding: 2rem;
-            transition: all 0.3s ease;
+            padding: 2rem 0;
         }
         
         .page-header {
@@ -180,6 +175,8 @@ if (isset($_POST['delete_document'])) {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
         
         .page-title {
@@ -195,6 +192,23 @@ if (isset($_POST['delete_document'])) {
         .page-subtitle {
             color: var(--gray);
             font-size: 1.1rem;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray);
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            text-decoration: underline;
         }
         
         .back-link {
@@ -275,6 +289,7 @@ if (isset($_POST['delete_document'])) {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            text-decoration: none;
         }
         
         .btn-primary {
@@ -298,18 +313,9 @@ if (isset($_POST['delete_document'])) {
             background: #e2e8f0;
         }
         
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        
         .documents-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1.5rem;
         }
         
@@ -320,6 +326,7 @@ if (isset($_POST['delete_document'])) {
             box-shadow: var(--shadow);
             transition: all 0.3s ease;
             border: 1px solid var(--border);
+            position: relative;
         }
         
         .document-card:hover {
@@ -331,6 +338,7 @@ if (isset($_POST['delete_document'])) {
             padding: 1.5rem;
             border-bottom: 1px solid var(--border);
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            position: relative;
         }
         
         .doc-type-badge {
@@ -421,28 +429,6 @@ if (isset($_POST['delete_document'])) {
             color: #cbd5e1;
         }
         
-        .alert {
-            padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .alert-success {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--secondary);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-        
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        
         .stats-bar {
             display: flex;
             gap: 1.5rem;
@@ -472,15 +458,25 @@ if (isset($_POST['delete_document'])) {
             font-weight: 600;
         }
         
-        @media (max-width: 1200px) {
-            .main-content {
-                margin-left: 0;
-                padding: 1.5rem;
-            }
-            
-            .documents-grid {
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            }
+        .preview-container {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 180px;
+            object-fit: contain;
+        }
+        
+        .preview-placeholder {
+            font-size: 3rem;
+            color: #cbd5e1;
         }
         
         @media (max-width: 768px) {
@@ -517,177 +513,178 @@ if (isset($_POST['delete_document'])) {
     </style>
 </head>
 <body>
-    <?php include('sidebar.php'); ?>
+    <?php include("temperate/header.php"); ?>
     
     <main class="main-content">
-        <div class="page-header">
-            <div>
-                <h1 class="page-title"><?php echo $valid_types[$doc_type]['name']; ?></h1>
-                <p class="page-subtitle">View and manage all <?php echo strtolower($valid_types[$doc_type]['name']); ?> documents</p>
-            </div>
-            <a href="manage_documents.php" class="back-link">
-                <i class="fas fa-arrow-left"></i> Back to All Documents
-            </a>
-        </div>
-        
-        <?php if (isset($success_message)): ?>
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (isset($error_message)): ?>
-            <div class="alert alert-error">
-                <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Statistics Bar -->
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-value"><?php echo count($all_documents); ?></div>
-                <div class="stat-label">Total <?php echo $valid_types[$doc_type]['name']; ?></div>
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="index.php">Home</a> > 
+                <a href="index.php#documents">Document Types</a> > 
+                <span><?php echo $valid_types[$doc_type]['name']; ?></span>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-value"><?php 
-                    $unique_courses = [];
-                    foreach ($all_documents as $doc) {
-                        if (!in_array($doc['course_id'], $unique_courses)) {
-                            $unique_courses[] = $doc['course_id'];
-                        }
-                    }
-                    echo count($unique_courses);
-                ?></div>
-                <div class="stat-label">Courses with <?php echo strtolower($valid_types[$doc_type]['name']); ?></div>
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title"><?php echo $valid_types[$doc_type]['name']; ?></h1>
+                    <p class="page-subtitle">Browse our collection of <?php echo strtolower($valid_types[$doc_type]['name']); ?> templates</p>
+                </div>
+                <a href="index.php#documents" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Document Types
+                </a>
             </div>
-        </div>
-        
-        <!-- Filters -->
-        <div class="filters-container">
-            <form method="GET" action="<?php echo basename(__FILE__); ?>">
-                <input type="hidden" name="type" value="<?php echo $doc_type; ?>">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label class="filter-label">Course</label>
-                        <select name="course_id" class="filter-select">
-                            <option value="">All Courses</option>
-                            <?php foreach ($courses as $course): ?>
-                                <option value="<?php echo $course['course_id']; ?>" <?php echo $course_id == $course['course_id'] ? 'selected' : ''; ?>>
-                                    <?php echo $course['course_code'] . ' - ' . $course['course_name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Year</label>
-                        <select name="year" class="filter-select">
-                            <option value="">All Years</option>
-                            <option value="first" <?php echo $year === 'first' ? 'selected' : ''; ?>>First Year</option>
-                            <option value="second" <?php echo $year === 'second' ? 'selected' : ''; ?>>Second Year</option>
-                            <option value="third" <?php echo $year === 'third' ? 'selected' : ''; ?>>Third Year</option>
-                            <option value="fourth" <?php echo $year === 'fourth' ? 'selected' : ''; ?>>Fourth Year</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Semester</label>
-                        <select name="semester" class="filter-select">
-                            <option value="">All Semesters</option>
-                            <option value="1" <?php echo $semester === '1' ? 'selected' : ''; ?>>Semester 1</option>
-                            <option value="2" <?php echo $semester === '2' ? 'selected' : ''; ?>>Semester 2</option>
-                        </select>
-                    </div>
+            
+            <!-- Statistics Bar -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo count($all_documents); ?></div>
+                    <div class="stat-label">Total <?php echo $valid_types[$doc_type]['name']; ?></div>
                 </div>
                 
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter"></i> Apply Filters
-                    </button>
-                    <a href="<?php echo basename(__FILE__); ?>" class="btn btn-secondary">
-                        <i class="fas fa-redo"></i> Clear Filters
-                    </a>
+                <div class="stat-card">
+                    <div class="stat-value"><?php 
+                        $unique_courses = [];
+                        foreach ($all_documents as $doc) {
+                            if (!in_array($doc['course_id'], $unique_courses)) {
+                                $unique_courses[] = $doc['course_id'];
+                            }
+                        }
+                        echo count($unique_courses);
+                    ?></div>
+                    <div class="stat-label">Courses with <?php echo strtolower($valid_types[$doc_type]['name']); ?></div>
                 </div>
-            </form>
-        </div>
-        
-        <!-- Documents Grid -->
-        <div class="documents-grid">
-            <?php if (empty($all_documents)): ?>
-                <div class="no-documents">
-                    <i class="fas fa-file-alt"></i>
-                    <h3>No <?php echo strtolower($valid_types[$doc_type]['name']); ?> found</h3>
-                    <p>Try adjusting your filters or upload new documents.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($all_documents as $document): ?>
-                    <div class="document-card">
-                        <div class="card-header">
-                            <div class="doc-type-badge">
-                                <i class="fas <?php echo $valid_types[$document['doc_type']]['icon']; ?>"></i>
-                                <?php echo $valid_types[$document['doc_type']]['name']; ?>
-                            </div>
-                            <h3 class="card-title"><?php echo htmlspecialchars($document['title']); ?></h3>
-                            <p class="card-subtitle">
-                                <?php echo htmlspecialchars($document['course_code'] . ' - ' . $document['course_name']); ?>
-                            </p>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filters-container">
+                <form method="GET" action="<?php echo basename(__FILE__); ?>">
+                    <input type="hidden" name="type" value="<?php echo $doc_type; ?>">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label class="filter-label">Course</label>
+                            <select name="course_id" class="filter-select">
+                                <option value="">All Courses</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['course_id']; ?>" <?php echo $course_id == $course['course_id'] ? 'selected' : ''; ?>>
+                                        <?php echo $course['course_code'] . ' - ' . $course['course_name']; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         
-                        <div class="card-body">
-                            <div class="doc-meta">
-                                <div class="meta-item">
-                                    <span class="meta-label">Year</span>
-                                    <span class="meta-value"><?php echo ucfirst($document['year']); ?> Year</span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Semester</span>
-                                    <span class="meta-value">Semester <?php echo $document['semester']; ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Level</span>
-                                    <span class="meta-value"><?php echo ucfirst($document['level']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Uploaded</span>
-                                    <span class="meta-value"><?php echo date('M j, Y', strtotime($document['uploaded_at'])); ?></span>
-                                </div>
-                            </div>
-                            
-                            <?php if (!empty($document['description'])): ?>
-                                <p class="card-description"><?php echo htmlspecialchars($document['description']); ?></p>
-                            <?php endif; ?>
-                            
-                            <div class="file-info">
-                                <i class="fas fa-file"></i>
-                                <?php echo htmlspecialchars($document['file_name']); ?>
-                                (<?php echo round($document['file_size'] / 1024 / 1024, 2); ?> MB)
-                            </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Year</label>
+                            <select name="year" class="filter-select">
+                                <option value="">All Years</option>
+                                <option value="first" <?php echo $year === 'first' ? 'selected' : ''; ?>>First Year</option>
+                                <option value="second" <?php echo $year === 'second' ? 'selected' : ''; ?>>Second Year</option>
+                                <option value="third" <?php echo $year === 'third' ? 'selected' : ''; ?>>Third Year</option>
+                                <option value="fourth" <?php echo $year === 'fourth' ? 'selected' : ''; ?>>Fourth Year</option>
+                            </select>
                         </div>
                         
-                        <div class="card-footer">
-                            <!-- Fixed file paths - added admin/ prefix -->
-                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
-                               class="btn btn-primary" download>
-                                <i class="fas fa-download"></i> Download
-                            </a>
-                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
-                               class="btn btn-secondary" target="_blank">
-                                <i class="fas fa-eye"></i> View
-                            </a>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="doc_id" value="<?php echo $document['doc_id']; ?>">
-                                <input type="hidden" name="source_table" value="<?php echo $document['source_table']; ?>">
-                                <input type="hidden" name="file_path" value="<?php echo htmlspecialchars($document['file_path']); ?>">
-                                <button type="submit" name="delete_document" class="btn btn-danger" 
-                                        onclick="return confirm('Are you sure you want to delete this document?')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </form>
+                        <div class="filter-group">
+                            <label class="filter-label">Semester</label>
+                            <select name="semester" class="filter-select">
+                                <option value="">All Semesters</option>
+                                <option value="1" <?php echo $semester === '1' ? 'selected' : ''; ?>>Semester 1</option>
+                                <option value="2" <?php echo $semester === '2' ? 'selected' : ''; ?>>Semester 2</option>
+                            </select>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <a href="<?php echo basename(__FILE__); ?>" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Documents Grid -->
+            <div class="documents-grid">
+                <?php if (empty($all_documents)): ?>
+                    <div class="no-documents">
+                        <i class="fas fa-file-image"></i>
+                        <h3>No <?php echo strtolower($valid_types[$doc_type]['name']); ?> found</h3>
+                        <p>Try adjusting your filters or check back later for new uploads.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($all_documents as $document): ?>
+                        <div class="document-card">
+                            <div class="preview-container">
+                                <?php 
+                                $extension = strtolower(pathinfo($document['file_name'], PATHINFO_EXTENSION));
+                                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])): 
+                                ?>
+                                    <img src="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
+                                         alt="<?php echo htmlspecialchars($document['title']); ?>" 
+                                         class="preview-image">
+                                <?php else: ?>
+                                    <div class="preview-placeholder">
+                                        <i class="fas fa-file-image"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="card-header">
+                                <div class="doc-type-badge">
+                                    <i class="fas <?php echo $valid_types[$document['doc_type']]['icon']; ?>"></i>
+                                    <?php echo $valid_types[$document['doc_type']]['name']; ?>
+                                </div>
+                                <h3 class="card-title"><?php echo htmlspecialchars($document['title']); ?></h3>
+                                <p class="card-subtitle">
+                                    <?php echo htmlspecialchars($document['course_code'] . ' - ' . $document['course_name']); ?>
+                                </p>
+                            </div>
+                            
+                            <div class="card-body">
+                                <div class="doc-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Year</span>
+                                        <span class="meta-value"><?php echo ucfirst($document['year']); ?> Year</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Semester</span>
+                                        <span class="meta-value">Semester <?php echo $document['semester']; ?></span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Level</span>
+                                        <span class="meta-value"><?php echo ucfirst($document['level']); ?></span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Uploaded</span>
+                                        <span class="meta-value"><?php echo date('M j, Y', strtotime($document['uploaded_at'])); ?></span>
+                                    </div>
+                                </div>
+                                
+                                <?php if (!empty($document['description'])): ?>
+                                    <p class="card-description"><?php echo htmlspecialchars($document['description']); ?></p>
+                                <?php endif; ?>
+                                
+                                <div class="file-info">
+                                    <i class="fas fa-file"></i>
+                                    <?php echo htmlspecialchars($document['file_name']); ?>
+                                    (<?php echo round($document['file_size'] / 1024 / 1024, 2); ?> MB)
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer">
+                                <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
+                                   class="btn btn-primary" download>
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                                <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
+                                   class="btn btn-secondary" target="_blank">
+                                    <i class="fas fa-eye"></i> Preview
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
     </main>
 
@@ -699,5 +696,7 @@ if (isset($_POST['delete_document'])) {
             });
         });
     </script>
-</body>
-</html>
+
+<?php
+include("temperate/footer.php");
+?>

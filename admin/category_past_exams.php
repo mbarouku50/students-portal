@@ -30,7 +30,7 @@ $semester = isset($_GET['semester']) ? $_GET['semester'] : '';
 
 // Get all courses for filter
 $courses = [];
-$courses_result = $conn->query("SELECT course_id, course_code, course_name FROM courses ORDER BY course_code");
+$courses_result = $conn->query("SELECT course_id, course_code, course_name FROM courses ORDER by course_code");
 if ($courses_result && $courses_result->num_rows > 0) {
     while ($row = $courses_result->fetch_assoc()) {
         $courses[$row['course_id']] = $row;
@@ -117,9 +117,10 @@ if (isset($_POST['delete_document'])) {
     $stmt->bind_param("i", $doc_id);
     
     if ($stmt->execute()) {
-        // Delete the actual file
-        if (file_exists("../" . $file_path)) {
-            unlink("../" . $file_path);
+        // Delete the actual file - add admin/ prefix to file path
+        $full_file_path = "../admin/" . $file_path;
+        if (file_exists($full_file_path)) {
+            unlink($full_file_path);
         }
         $success_message = "Document deleted successfully!";
     } else {
@@ -140,7 +141,7 @@ if (isset($_POST['delete_document'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $valid_types[$doc_type]['name']; ?> - CBE Doc's Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Same CSS as in manage_documents.php */
         :root {
@@ -665,11 +666,12 @@ if (isset($_POST['delete_document'])) {
                         </div>
                         
                         <div class="card-footer">
-                            <a href="../<?php echo htmlspecialchars($document['file_path']); ?>" 
+                            <!-- Fixed file paths - added admin/ prefix -->
+                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
                                class="btn btn-primary" download>
                                 <i class="fas fa-download"></i> Download
                             </a>
-                            <a href="../<?php echo htmlspecialchars($document['file_path']); ?>" 
+                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
                                class="btn btn-secondary" target="_blank">
                                 <i class="fas fa-eye"></i> View
                             </a>
