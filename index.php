@@ -307,7 +307,7 @@ if ($result && $result->num_rows > 0) {
         <!-- Document Types Grid -->
         <div class="doc-types-grid">
             <?php foreach ($valid_types as $type_key => $type_info): ?>
-                <a href="category_<?php echo $type_key; ?>.php" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
+                <a href="" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
                     <i class="fas <?php echo $type_info['icon']; ?>"></i>
                     <h3><?php echo $type_info['name']; ?></h3>
                     <p>

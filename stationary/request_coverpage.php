@@ -360,61 +360,6 @@
             text-align: center;
             padding-top: 5px;
         }
-        /* Hide elements when printing */
-@media print {
-    .system-info,
-    .page-header,
-    .coverpage-hero::before,
-    .action-buttons,
-    .features-grid {
-        display: none !important;
-    }
-    
-    .cover-template {
-        box-shadow: none;
-        margin: 0;
-        padding: 1cm;
-        width: 100%;
-    }
-    
-    body {
-        background: white;
-        color: black;
-    }
-}
-/* Print-only title that appears on the printed cover page */
-.print-only-title {
-    display: none;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #ddd;
-}
-
-.print-only-title h2 {
-    font-size: 18px;
-    margin: 0 0 0.5rem 0;
-    color: #333;
-}
-
-.print-date {
-    font-size: 14px;
-    color: #666;
-}
-
-/* Show print-only title when printing */
-@media print {
-    .print-only-title {
-        display: block !important;
-    }
-}
-
-/* Hide print-only title on screen */
-@media screen {
-    .print-only-title {
-        display: none;
-    }
-}
         
         @media (max-width: 768px) {
             .page-header h1 {
