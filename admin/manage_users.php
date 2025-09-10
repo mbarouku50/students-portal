@@ -1,4 +1,3 @@
-
 <?php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -6,107 +5,213 @@ error_reporting(E_ALL);
 include("../connection.php");
 include("sidebar.php");
 
+
+
+// Determine which section to show (users or admins)
+$section = isset($_GET['section']) ? $_GET['section'] : 'users';
+
 // Initialize variables
 $search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 $program_filter = isset($_GET['program']) ? $conn->real_escape_string($_GET['program']) : '';
 $year_filter = isset($_GET['year']) ? $conn->real_escape_string($_GET['year']) : '';
 
-// Build the query
-$where_conditions = [];
-$query_params = [];
+// Build the query based on section
+if ($section === 'users') {
+    $where_conditions = [];
+    $query_params = [];
 
-if (!empty($search)) {
-    $where_conditions[] = "(fullname LIKE ? OR email LIKE ? OR reg LIKE ?)";
-    $search_param = "%$search%";
-    $query_params[] = $search_param;
-    $query_params[] = $search_param;
-    $query_params[] = $search_param;
-}
-
-if (!empty($program_filter)) {
-    $where_conditions[] = "program = ?";
-    $query_params[] = $program_filter;
-}
-
-if (!empty($year_filter)) {
-    $where_conditions[] = "year = ?";
-    $query_params[] = $year_filter;
-}
-
-// Get total number of users
-$count_query = "SELECT COUNT(*) as total FROM users";
-if (!empty($where_conditions)) {
-    $count_query .= " WHERE " . implode(" AND ", $where_conditions);
-}
-
-$count_stmt = $conn->prepare($count_query);
-if (!empty($query_params)) {
-    $types = str_repeat('s', count($query_params));
-    $count_stmt->bind_param($types, ...$query_params);
-}
-$count_stmt->execute();
-$count_result = $count_stmt->get_result();
-$total_users = $count_result->fetch_assoc()['total'];
-$count_stmt->close();
-
-// Pagination
-$per_page = 10;
-$total_pages = ceil($total_users / $per_page);
-$current_page = isset($_GET['page']) ? max(1, min($total_pages, intval($_GET['page']))) : 1;
-$offset = ($current_page - 1) * $per_page;
-
-// Get users with pagination
-$query = "SELECT user_id, fullname, email, reg, program, year, created_at FROM users";
-if (!empty($where_conditions)) {
-    $query .= " WHERE " . implode(" AND ", $where_conditions);
-}
-$query .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
-
-// Prepare and execute query
-$stmt = $conn->prepare($query);
-if (!empty($query_params)) {
-    $types = str_repeat('s', count($query_params)) . 'ii';
-    $params = array_merge($query_params, [$per_page, $offset]);
-    $stmt->bind_param($types, ...$params);
-} else {
-    $stmt->bind_param("ii", $per_page, $offset);
-}
-
-$stmt->execute();
-$result = $stmt->get_result();
-$users = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
-
-// Get unique programs and years for filters
-$programs_result = $conn->query("SELECT DISTINCT program FROM users WHERE program IS NOT NULL ORDER BY program");
-$programs = [];
-while ($row = $programs_result->fetch_assoc()) {
-    $programs[] = $row['program'];
-}
-
-$years_result = $conn->query("SELECT DISTINCT year FROM users WHERE year IS NOT NULL ORDER BY year");
-$years = [];
-while ($row = $years_result->fetch_assoc()) {
-    $years[] = $row['year'];
-}
-
-// Handle user deletion
-if (isset($_POST['delete_user'])) {
-    $user_id = intval($_POST['user_id']);
-    
-    $delete_sql = "DELETE FROM users WHERE user_id = ?";
-    $delete_stmt = $conn->prepare($delete_sql);
-    $delete_stmt->bind_param("i", $user_id);
-    
-    if ($delete_stmt->execute()) {
-        $success_message = "User deleted successfully!";
-        // Refresh the page to show updated list
-        header("Location: manage_users.php?" . $_SERVER['QUERY_STRING']);
-        exit();
-    } else {
-        $error_message = "Error deleting user: " . $conn->error;
+    if (!empty($search)) {
+        $where_conditions[] = "(fullname LIKE ? OR email LIKE ? OR reg LIKE ?)";
+        $search_param = "%$search%";
+        $query_params[] = $search_param;
+        $query_params[] = $search_param;
+        $query_params[] = $search_param;
     }
-    $delete_stmt->close();
+
+    if (!empty($program_filter)) {
+        $where_conditions[] = "program = ?";
+        $query_params[] = $program_filter;
+    }
+
+    if (!empty($year_filter)) {
+        $where_conditions[] = "year = ?";
+        $query_params[] = $year_filter;
+    }
+
+    // Get total number of users
+    $count_query = "SELECT COUNT(*) as total FROM users";
+    if (!empty($where_conditions)) {
+        $count_query .= " WHERE " . implode(" AND ", $where_conditions);
+    }
+
+    $count_stmt = $conn->prepare($count_query);
+    if (!empty($query_params)) {
+        $types = str_repeat('s', count($query_params));
+        $count_stmt->bind_param($types, ...$query_params);
+    }
+    $count_stmt->execute();
+    $count_result = $count_stmt->get_result();
+    $total_records = $count_result->fetch_assoc()['total'];
+    $count_stmt->close();
+
+    // Pagination
+    $per_page = 10;
+    $total_pages = ceil($total_records / $per_page);
+    $current_page = isset($_GET['page']) ? max(1, min($total_pages, intval($_GET['page']))) : 1;
+    $offset = ($current_page - 1) * $per_page;
+
+    // Get users with pagination
+    $query = "SELECT user_id, fullname, email, reg, program, year, created_at FROM users";
+    if (!empty($where_conditions)) {
+        $query .= " WHERE " . implode(" AND ", $where_conditions);
+    }
+    $query .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+
+    // Prepare and execute query
+    $stmt = $conn->prepare($query);
+    if (!empty($query_params)) {
+        $types = str_repeat('s', count($query_params)) . 'ii';
+        $params = array_merge($query_params, [$per_page, $offset]);
+        $stmt->bind_param($types, ...$params);
+    } else {
+        $stmt->bind_param("ii", $per_page, $offset);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $records = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    // Get unique programs and years for filters
+    $programs_result = $conn->query("SELECT DISTINCT program FROM users WHERE program IS NOT NULL ORDER BY program");
+    $programs = [];
+    while ($row = $programs_result->fetch_assoc()) {
+        $programs[] = $row['program'];
+    }
+
+    $years_result = $conn->query("SELECT DISTINCT year FROM users WHERE year IS NOT NULL ORDER BY year");
+    $years = [];
+    while ($row = $years_result->fetch_assoc()) {
+        $years[] = $row['year'];
+    }
+
+    // Handle user deletion
+    if (isset($_POST['delete_user'])) {
+        $user_id = intval($_POST['user_id']);
+        
+        $delete_sql = "DELETE FROM users WHERE user_id = ?";
+        $delete_stmt = $conn->prepare($delete_sql);
+        $delete_stmt->bind_param("i", $user_id);
+        
+        if ($delete_stmt->execute()) {
+            $success_message = "User deleted successfully!";
+            // Refresh the page to show updated list
+            header("Location: manage_users.php?" . $_SERVER['QUERY_STRING']);
+            exit();
+        } else {
+            $error_message = "Error deleting user: " . $conn->error;
+        }
+        $delete_stmt->close();
+    }
+} else { // Admin section
+    $where_conditions = [];
+    $query_params = [];
+
+    if (!empty($search)) {
+        $where_conditions[] = "(fullname LIKE ? OR email LIKE ?)";
+        $search_param = "%$search%";
+        $query_params[] = $search_param;
+        $query_params[] = $search_param;
+    }
+
+    // Get total number of admins
+    $count_query = "SELECT COUNT(*) as total FROM admin";
+    if (!empty($where_conditions)) {
+        $count_query .= " WHERE " . implode(" AND ", $where_conditions);
+    }
+
+    $count_stmt = $conn->prepare($count_query);
+    if (!empty($query_params)) {
+        $types = str_repeat('s', count($query_params));
+        $count_stmt->bind_param($types, ...$query_params);
+    }
+    $count_stmt->execute();
+    $count_result = $count_stmt->get_result();
+    $total_records = $count_result->fetch_assoc()['total'];
+    $count_stmt->close();
+
+    // Pagination
+    $per_page = 10;
+    $total_pages = ceil($total_records / $per_page);
+    $current_page = isset($_GET['page']) ? max(1, min($total_pages, intval($_GET['page']))) : 1;
+    $offset = ($current_page - 1) * $per_page;
+
+    // Get admins with pagination
+    $query = "SELECT admin_id, fullname, email, profile_picture, last_login, created_at, status FROM admin";
+    if (!empty($where_conditions)) {
+        $query .= " WHERE " . implode(" AND ", $where_conditions);
+    }
+    $query .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+
+    // Prepare and execute query
+    $stmt = $conn->prepare($query);
+    if (!empty($query_params)) {
+        $types = str_repeat('s', count($query_params)) . 'ii';
+        $params = array_merge($query_params, [$per_page, $offset]);
+        $stmt->bind_param($types, ...$params);
+    } else {
+        $stmt->bind_param("ii", $per_page, $offset);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $records = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    // Handle admin deletion
+    if (isset($_POST['delete_admin'])) {
+        $admin_id = intval($_POST['admin_id']);
+        
+        // Prevent deletion of own account
+        if ($admin_id == $_SESSION['admin_id']) {
+            $error_message = "You cannot delete your own account!";
+        } else {
+            $delete_sql = "DELETE FROM admin WHERE admin_id = ?";
+            $delete_stmt = $conn->prepare($delete_sql);
+            $delete_stmt->bind_param("i", $admin_id);
+            
+            if ($delete_stmt->execute()) {
+                $success_message = "Admin deleted successfully!";
+                // Refresh the page to show updated list
+                header("Location: manage_users.php?section=admins&" . $_SERVER['QUERY_STRING']);
+                exit();
+            } else {
+                $error_message = "Error deleting admin: " . $conn->error;
+            }
+            $delete_stmt->close();
+        }
+    }
+    
+    // Handle admin status change
+    if (isset($_POST['toggle_status'])) {
+        $admin_id = intval($_POST['admin_id']);
+        $current_status = $_POST['current_status'];
+        $new_status = ($current_status == 'active') ? 'inactive' : 'active';
+        
+        $update_sql = "UPDATE admin SET status = ? WHERE admin_id = ?";
+        $update_stmt = $conn->prepare($update_sql);
+        $update_stmt->bind_param("si", $new_status, $admin_id);
+        
+        if ($update_stmt->execute()) {
+            $success_message = "Admin status updated successfully!";
+            // Refresh the page to show updated list
+            header("Location: manage_users.php?section=admins&" . $_SERVER['QUERY_STRING']);
+            exit();
+        } else {
+            $error_message = "Error updating admin status: " . $conn->error;
+        }
+        $update_stmt->close();
+    }
 }
 ?>
 
@@ -115,7 +220,7 @@ if (isset($_POST['delete_user'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Users - CBE Doc's Store</title>
+    <title>Manage <?php echo ucfirst($section); ?> - CBE Doc's Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -172,6 +277,30 @@ if (isset($_POST['delete_user'])) {
         .page-subtitle {
             color: var(--gray);
             font-size: 1.1rem;
+        }
+        
+        .section-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .section-tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--gray);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .section-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .section-tab:hover:not(.active) {
+            color: var(--dark);
         }
         
         .filters-container {
@@ -275,6 +404,15 @@ if (isset($_POST['delete_user'])) {
             background: #0da271;
         }
         
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
         .users-table-container {
             background: white;
             border-radius: 0.75rem;
@@ -325,6 +463,20 @@ if (isset($_POST['delete_user'])) {
             font-size: 1rem;
         }
         
+        .admin-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #e2e8f0;
+        }
+        
+        .admin-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
         .user-info {
             display: flex;
             align-items: center;
@@ -362,6 +514,16 @@ if (isset($_POST['delete_user'])) {
         .badge-success {
             background: rgba(16, 185, 129, 0.1);
             color: var(--secondary);
+        }
+        
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
         }
         
         .badge-gray {
@@ -505,6 +667,14 @@ if (isset($_POST['delete_user'])) {
             .action-buttons {
                 flex-direction: column;
             }
+            
+            .section-tabs {
+                flex-direction: column;
+            }
+            
+            .section-tab {
+                border-bottom: 1px solid var(--border);
+            }
         }
     </style>
 </head>
@@ -514,12 +684,28 @@ if (isset($_POST['delete_user'])) {
     <main class="main-content">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Manage Users</h1>
-                <p class="page-subtitle">View and manage all registered users</p>
+                <h1 class="page-title">Manage <?php echo ucfirst($section); ?></h1>
+                <p class="page-subtitle">View and manage all registered <?php echo $section; ?></p>
             </div>
-            <a href="admin_register.php" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Add New User
-            </a>
+            <?php if ($section === 'users'): ?>
+                <a href="admin_register.php" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Add New User
+                </a>
+            <?php else: ?>
+                <a href="add_admin.php" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Add New Admin
+                </a>
+            <?php endif; ?>
+        </div>
+        
+        <!-- Section Tabs -->
+        <div class="section-tabs">
+            <div class="section-tab <?php echo $section === 'users' ? 'active' : ''; ?>" onclick="window.location='manage_users.php?section=users'">
+                <i class="fas fa-users"></i> Users
+            </div>
+            <div class="section-tab <?php echo $section === 'admins' ? 'active' : ''; ?>" onclick="window.location='manage_users.php?section=admins'">
+                <i class="fas fa-user-shield"></i> Admins
+            </div>
         </div>
         
         <?php if (isset($success_message)): ?>
@@ -536,127 +722,215 @@ if (isset($_POST['delete_user'])) {
         
         <!-- Statistics Bar -->
         <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $total_users; ?></div>
-                <div class="stat-label">Total Users</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value"><?php echo count($programs); ?></div>
-                <div class="stat-label">Programs</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value"><?php echo count($years); ?></div>
-                <div class="stat-label">Academic Years</div>
-            </div>
+            <?php if ($section === 'users'): ?>
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo $total_records; ?></div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo count($programs); ?></div>
+                    <div class="stat-label">Programs</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo count($years); ?></div>
+                    <div class="stat-label">Academic Years</div>
+                </div>
+            <?php else: ?>
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo $total_records; ?></div>
+                    <div class="stat-label">Total Admins</div>
+                </div>
+                
+                <div class="stat-card">
+                    <?php
+                    $active_admins = $conn->query("SELECT COUNT(*) as count FROM admin WHERE status = 'active'");
+                    $active_count = $active_admins->fetch_assoc()['count'];
+                    ?>
+                    <div class="stat-value"><?php echo $active_count; ?></div>
+                    <div class="stat-label">Active Admins</div>
+                </div>
+                
+                <div class="stat-card">
+                    <?php
+                    $inactive_admins = $conn->query("SELECT COUNT(*) as count FROM admin WHERE status = 'inactive'");
+                    $inactive_count = $inactive_admins->fetch_assoc()['count'];
+                    ?>
+                    <div class="stat-value"><?php echo $inactive_count; ?></div>
+                    <div class="stat-label">Inactive Admins</div>
+                </div>
+            <?php endif; ?>
         </div>
         
         <!-- Filters -->
         <div class="filters-container">
             <form method="GET" action="manage_users.php">
+                <input type="hidden" name="section" value="<?php echo $section; ?>">
                 <div class="filter-row">
                     <div class="filter-group">
-                        <label class="filter-label">Search Users</label>
-                        <input type="text" name="search" class="filter-input" placeholder="Search by name, email or registration..." value="<?php echo htmlspecialchars($search); ?>">
+                        <label class="filter-label">Search <?php echo ucfirst($section); ?></label>
+                        <input type="text" name="search" class="filter-input" placeholder="Search by name, email..." value="<?php echo htmlspecialchars($search); ?>">
                     </div>
                     
-                    <div class="filter-group">
-                        <label class="filter-label">Program</label>
-                        <select name="program" class="filter-select">
-                            <option value="">All Programs</option>
-                            <?php foreach ($programs as $program): ?>
-                                <option value="<?php echo htmlspecialchars($program); ?>" <?php echo $program_filter === $program ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($program); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Year</label>
-                        <select name="year" class="filter-select">
-                            <option value="">All Years</option>
-                            <?php foreach ($years as $year): ?>
-                                <option value="<?php echo htmlspecialchars($year); ?>" <?php echo $year_filter === $year ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($year); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                    <?php if ($section === 'users'): ?>
+                        <div class="filter-group">
+                            <label class="filter-label">Program</label>
+                            <select name="program" class="filter-select">
+                                <option value="">All Programs</option>
+                                <?php foreach ($programs as $program): ?>
+                                    <option value="<?php echo htmlspecialchars($program); ?>" <?php echo $program_filter === $program ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($program); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Year</label>
+                            <select name="year" class="filter-select">
+                                <option value="">All Years</option>
+                                <?php foreach ($years as $year): ?>
+                                    <option value="<?php echo htmlspecialchars($year); ?>" <?php echo $year_filter === $year ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($year); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter"></i> Apply Filters
                     </button>
-                    <a href="manage_users.php" class="btn btn-secondary">
+                    <a href="manage_users.php?section=<?php echo $section; ?>" class="btn btn-secondary">
                         <i class="fas fa-redo"></i> Clear Filters
                     </a>
                 </div>
             </form>
         </div>
         
-        <!-- Users Table -->
+        <!-- Table -->
         <div class="users-table-container">
-            <?php if (empty($users)): ?>
+            <?php if (empty($records)): ?>
                 <div class="no-users">
-                    <i class="fas fa-users"></i>
-                    <h3>No users found</h3>
+                    <i class="fas fa-<?php echo $section === 'users' ? 'users' : 'user-shield'; ?>"></i>
+                    <h3>No <?php echo $section; ?> found</h3>
                     <p>Try adjusting your search or filters.</p>
                 </div>
             <?php else: ?>
                 <table class="users-table">
                     <thead>
                         <tr>
-                            <th>User</th>
-                            <th>Registration Number</th>
-                            <th>Program</th>
-                            <th>Year</th>
-                            <th>Joined</th>
+                            <?php if ($section === 'users'): ?>
+                                <th>User</th>
+                                <th>Registration Number</th>
+                                <th>Program</th>
+                                <th>Year</th>
+                                <th>Joined</th>
+                            <?php else: ?>
+                                <th>Admin</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th>Created</th>
+                            <?php endif; ?>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($users as $user): ?>
+                        <?php foreach ($records as $record): ?>
                             <tr>
-                                <td>
-                                    <div class="user-info">
-                                        <div class="user-avatar">
-                                            <?php echo strtoupper(substr($user['fullname'], 0, 1)); ?>
+                                <?php if ($section === 'users'): ?>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                <?php echo strtoupper(substr($record['fullname'], 0, 1)); ?>
+                                            </div>
+                                            <div class="user-details">
+                                                <span class="user-name"><?php echo htmlspecialchars($record['fullname']); ?></span>
+                                                <span class="user-email"><?php echo htmlspecialchars($record['email']); ?></span>
+                                            </div>
                                         </div>
-                                        <div class="user-details">
-                                            <span class="user-name"><?php echo htmlspecialchars($user['fullname']); ?></span>
-                                            <span class="user-email"><?php echo htmlspecialchars($user['email']); ?></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-gray"><?php echo htmlspecialchars($record['reg']); ?></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-primary"><?php echo htmlspecialchars($record['program']); ?></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-success">Year <?php echo htmlspecialchars($record['year']); ?></span>
+                                    </td>
+                                    <td>
+                                        <?php echo date('M j, Y', strtotime($record['created_at'])); ?>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="edit_user.php?id=<?php echo $record['user_id']; ?>" class="btn btn-icon btn-secondary" title="Edit User">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="user_id" value="<?php echo $record['user_id']; ?>">
+                                                <button type="submit" name="delete_user" class="btn btn-icon btn-danger" 
+                                                        onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')" title="Delete User">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge badge-gray"><?php echo htmlspecialchars($user['reg']); ?></span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-primary"><?php echo htmlspecialchars($user['program']); ?></span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-success">Year <?php echo htmlspecialchars($user['year']); ?></span>
-                                </td>
-                                <td>
-                                    <?php echo date('M j, Y', strtotime($user['created_at'])); ?>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <a href="edit_user.php?id=<?php echo $user['user_id']; ?>" class="btn btn-icon btn-secondary" title="Edit User">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="user_id" value="<?php echo $user['user_id']; ?>">
-                                            <button type="submit" name="delete_user" class="btn btn-icon btn-danger" 
-                                                    onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')" title="Delete User">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
+                                    </td>
+                                <?php else: ?>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="admin-avatar">
+                                                <?php if (!empty($record['profile_picture'])): ?>
+                                                    <img src="../uploads/profiles/<?php echo htmlspecialchars($record['profile_picture']); ?>" alt="Profile Picture">
+                                                <?php else: ?>
+                                                    <div class="user-avatar">
+                                                        <?php echo strtoupper(substr($record['fullname'], 0, 1)); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="user-details">
+                                                <span class="user-name"><?php echo htmlspecialchars($record['fullname']); ?></span>
+                                                <span class="user-email"><?php echo htmlspecialchars($record['email']); ?></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?php echo $record['status'] === 'active' ? 'badge-success' : 'badge-danger'; ?>">
+                                            <?php echo ucfirst($record['status']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php echo $record['last_login'] ? date('M j, Y H:i', strtotime($record['last_login'])) : 'Never'; ?>
+                                    </td>
+                                    <td>
+                                        <?php echo date('M j, Y', strtotime($record['created_at'])); ?>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="edit_admin.php?id=<?php echo $record['admin_id']; ?>" class="btn btn-icon btn-secondary" title="Edit Admin">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="admin_id" value="<?php echo $record['admin_id']; ?>">
+                                                <input type="hidden" name="current_status" value="<?php echo $record['status']; ?>">
+                                                <button type="submit" name="toggle_status" class="btn btn-icon <?php echo $record['status'] === 'active' ? 'btn-warning' : 'btn-success'; ?>" 
+                                                        title="<?php echo $record['status'] === 'active' ? 'Deactivate Admin' : 'Activate Admin'; ?>">
+                                                    <i class="fas fa-<?php echo $record['status'] === 'active' ? 'user-times' : 'user-check'; ?>"></i>
+                                                </button>
+                                            </form>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="admin_id" value="<?php echo $record['admin_id']; ?>">
+                                                <button type="submit" name="delete_admin" class="btn btn-icon btn-danger" 
+                                                        onclick="return confirm('Are you sure you want to delete this admin? This action cannot be undone.')" title="Delete Admin">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                <?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

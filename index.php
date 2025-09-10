@@ -276,6 +276,16 @@ if ($result && $result->num_rows > 0) {
         background: #f8fafc;
     }
 </style>
+<section class="hero">
+        <div class="container">
+            <h1>Your University Document Repository</h1>
+            <p>Find and share assignments, exams, notes, and other academic resources for all CBE bachelor degree programs.</p>
+            <div class="search-bar">
+                <input type="text" placeholder="Search for documents...">
+                <button>Search</button>
+            </div>
+        </div>
+    </section>
 
 <section class="main-content" id="courses">
     <div class="container">
@@ -307,7 +317,7 @@ if ($result && $result->num_rows > 0) {
         <!-- Document Types Grid -->
         <div class="doc-types-grid">
             <?php foreach ($valid_types as $type_key => $type_info): ?>
-                <a href="" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
+                <div class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
                     <i class="fas <?php echo $type_info['icon']; ?>"></i>
                     <h3><?php echo $type_info['name']; ?></h3>
                     <p>
@@ -319,7 +329,7 @@ if ($result && $result->num_rows > 0) {
                         echo $count . ' document' . ($count !== 1 ? 's' : '');
                         ?>
                     </p>
-                </a>
+                    </div>
             <?php endforeach; ?>
         </div>
     </div>

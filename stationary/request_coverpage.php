@@ -1,3 +1,307 @@
+
+<?php
+   
+include("temperate/header.php");
+
+// Start output buffering to capture content
+ob_start();
+
+// Process form data if submitted
+$cover_type = $_POST['cover-type'] ?? '';
+$course = $_POST['course'] ?? '';
+$lecturer = $_POST['lecturer'] ?? '';
+$subject = $_POST['subject'] ?? '';
+$code = $_POST['code'] ?? '';
+$student_name = $_POST['student-name'] ?? '';
+$reg_no = $_POST['reg-no'] ?? '';
+$program = $_POST['program'] ?? '';
+$module_name = $_POST['module-name'] ?? '';
+$instructor = $_POST['instructor'] ?? '';
+$module_code = $_POST['module-code'] ?? '';
+$year = $_POST['year'] ?? date('Y');
+$members = $_POST['members'] ?? [];
+
+// Check if we need to print
+$print_mode = isset($_POST['print']) && $_POST['print'] == 'true';
+
+// If in print mode, generate the cover page and exit
+if ($print_mode) {
+    // Generate appropriate cover based on type
+    if ($cover_type === 'individual') {
+        generateIndividualCover($course, $lecturer, $subject, $code, $student_name, $reg_no, $year);
+    } else if ($cover_type === 'group') {
+        generateGroupCover($program, $module_name, $instructor, $module_code, $year, $members);
+    }
+    exit;
+}
+
+// Function to generate individual cover
+function generateIndividualCover($course, $lecturer, $subject, $code, $student_name, $reg_no, $year) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Cover Page</title>
+        <style>
+            body {
+                font-family: 'Times New Roman', serif;
+                margin: 0;
+                padding: 0;
+            }
+            .cover-template {
+                width: 21cm;
+                min-height: 29.7cm;
+                padding: 2cm;
+                margin: 0 auto;
+                background: white;
+            }
+            .institution-name {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 1.5rem;
+                text-transform: uppercase;
+                text-align: center;
+            }
+            .logo-container {
+                text-align: center;
+                margin-bottom: 1.5rem;
+            }
+            .logo {
+                max-width: 150px;
+                height: auto;
+            }
+            .document-type {
+                font-size: 20px;
+                font-weight: bold;
+                margin: 1.5rem 0;
+                text-decoration: underline;
+                text-align: center;
+            }
+            .course-info {
+                margin: 1rem 0;
+                text-align: left;
+            }
+            .course-info div {
+                margin-bottom: 0.5rem;
+            }
+            .signature-area {
+                margin-top: 3rem;
+                display: flex;
+                justify-content: space-between;
+            }
+            .signature-line {
+                border-top: 1px solid #000;
+                width: 200px;
+                text-align: center;
+                padding-top: 5px;
+            }
+            @media print {
+                body {
+                    margin: 0;
+                    padding: 0;
+                }
+                .cover-template {
+                    width: 100%;
+                    height: 100%;
+                    padding: 0;
+                    margin: 0;
+                    box-shadow: none;
+                }
+                .no-print {
+                    display: none !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="cover-template individual">
+            <div class="institution-name">COLLEGE OF BUSINESS EDUCATION (CBE)<br>DAR ES SALAAM CAMPUS</div>
+            <div class="logo-container">
+                <img src="CBE_Logo2.png" alt="CBE Logo" class="logo">
+            </div>
+            
+            <div class="document-type">INDIVIDUAL ASSIGNMENT:</div>
+            
+            <div class="course-info">
+                <div><strong>COURSE:</strong> <?php echo htmlspecialchars($course); ?></div>
+                <div><strong>LECTURER NAME:</strong> <?php echo htmlspecialchars($lecturer); ?></div>
+                <div><strong>SUBJECT:</strong> <?php echo htmlspecialchars($subject); ?></div>
+                <div><strong>CODE:</strong> <?php echo htmlspecialchars($code); ?></div>
+                <div><strong>NAME:</strong> <?php echo htmlspecialchars($student_name); ?></div>
+                <div><strong>REG NO:</strong> <?php echo htmlspecialchars($reg_no); ?></div>
+                <div><strong>YEAR:</strong> <?php echo htmlspecialchars($year); ?></div>
+            </div>
+        
+            <div class="signature-area">
+                <div class="signature-line">Student's Signature</div>
+                <div class="signature-line">Lecturer's Signature</div>
+            </div>
+        </div>
+        
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.close()">Close</button>
+        </div>
+        
+        <script>
+            // Auto-print when page loads
+            window.onload = function() {
+                window.print();
+            };
+        </script>
+    </body>
+    </html>
+    <?php
+}
+
+// Function to generate group cover
+function generateGroupCover($program, $module_name, $instructor, $module_code, $year, $members) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Cover Page</title>
+        <style>
+            body {
+                font-family: 'Times New Roman', serif;
+                margin: 0;
+                padding: 0;
+            }
+            .cover-template {
+                width: 21cm;
+                min-height: 29.7cm;
+                padding: 2cm;
+                margin: 0 auto;
+                background: white;
+            }
+            .institution-name {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 1.5rem;
+                text-transform: uppercase;
+                text-align: center;
+            }
+            .logo-container {
+                text-align: center;
+                margin-bottom: 1.5rem;
+            }
+            .logo {
+                max-width: 150px;
+                height: auto;
+            }
+            .course-info {
+                margin: 1rem 0;
+                text-align: left;
+            }
+            .course-info div {
+                margin-bottom: 0.5rem;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 1.5rem 0;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+            .signature-area {
+                margin-top: 3rem;
+                display: flex;
+                justify-content: space-between;
+            }
+            .signature-line {
+                border-top: 1px solid #000;
+                width: 200px;
+                text-align: center;
+                padding-top: 5px;
+            }
+            @media print {
+                body {
+                    margin: 0;
+                    padding: 0;
+                }
+                .cover-template {
+                    width: 100%;
+                    height: 100%;
+                    padding: 0;
+                    margin: 0;
+                    box-shadow: none;
+                }
+                .no-print {
+                    display: none !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+  
+        <div class="cover-template group">
+            <div class="institution-name">COLLEGE OF BUSINESS EDUCATION<br>DAR ES SALAAM</div>
+            <div class="logo-container">
+                <img src="CBE_Logo2.png" alt="CBE Logo" class="logo">
+            </div>
+            
+            <div class="course-info">
+                <div><strong>PROGRAM:</strong> <?php echo htmlspecialchars($program); ?></div>
+                <div><strong>MODULE NAME:</strong> <?php echo htmlspecialchars($module_name); ?></div>
+                <div><strong>INSTRUCTOR:</strong> <?php echo htmlspecialchars($instructor); ?></div>
+                <div><strong>MODULE CODE:</strong> <?php echo htmlspecialchars($module_code); ?></div>
+                <div><strong>YEAR:</strong> <?php echo htmlspecialchars($year); ?></div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>S/N</th>
+                        <th>NAME</th>
+                        <th>REG NO.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $counter = 1;
+                    foreach ($members as $member) {
+                        if (!empty($member['name']) || !empty($member['reg'])) {
+                            echo "<tr>
+                                <td>{$counter}</td>
+                                <td>" . htmlspecialchars($member['name'] ?? '') . "</td>
+                                <td>" . htmlspecialchars($member['reg'] ?? '') . "</td>
+                            </tr>";
+                            $counter++;
+                        }
+                    }
+                    ?>
+                </tbody>
+            </table>
+            
+            <div class="signature-area">
+                <div class="signature-line">Group Representative</div>
+                <div class="signature-line">Instructor's Signature</div>
+            </div>
+        </div>
+        
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.close()">Close</button>
+        </div>
+        
+        <script>
+            // Auto-print when page loads
+            window.onload = function() {
+                window.print();
+            };
+        </script>
+    </body>
+    </html>
+    <?php
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +310,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --primary: #4f46e5;
@@ -189,6 +492,17 @@
             background: rgba(79, 70, 229, 0.1);
         }
         
+        .btn-success {
+            background: linear-gradient(90deg, var(--success), #0da271);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(90deg, #0da271, var(--success));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
         .btn-block {
             display: block;
             width: 100%;
@@ -196,7 +510,7 @@
         
         .preview-section {
             margin-top: 3rem;
-            display: none;
+            <?php if (isset($_POST['generate'])) echo 'display: block;'; else echo 'display: none;'; ?>
         }
         
         .preview-card {
@@ -282,6 +596,50 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+        }
+        
+        /* Preview modal styles */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .preview-content {
+            background-color: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            position: relative;
+        }
+        
+        .preview-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .close-preview {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
         }
         
         /* Cover page template styles */
@@ -388,6 +746,15 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+            
+            .preview-content {
+                padding: 1rem;
+                width: 95%;
+            }
+            
+            .preview-actions {
+                flex-direction: column;
+            }
         }
         
         @media (max-width: 480px) {
@@ -424,88 +791,100 @@
                     <h2><i class="fas fa-file-alt"></i> Cover Page Details</h2>
                 </div>
                 <div class="card-body">
-                    <form id="coverpage-form" class="coverpage-form">
+                    <form id="coverpage-form" class="coverpage-form" method="POST">
                         <div class="form-group">
                             <label for="cover-type" class="form-label">Cover Page Type</label>
                             <select name="cover-type" id="cover-type" class="form-control" required onchange="toggleFormFields()">
                                 <option value="">-- Select type --</option>
-                                <option value="individual">Individual Assignment</option>
-                                <option value="group">Group Project</option>
+                                <option value="individual" <?php if ($cover_type === 'individual') echo 'selected'; ?>>Individual Assignment</option>
+                                <option value="group" <?php if ($cover_type === 'group') echo 'selected'; ?>>Group Project</option>
                             </select>
                             <div class="error-message" id="cover-type-error">Please select a cover page type</div>
                         </div>
                         
-                        <div id="individual-fields">
+                        <div id="individual-fields" style="<?php if ($cover_type !== 'individual') echo 'display: none;'; ?>">
                             <div class="form-group">
                                 <label for="course" class="form-label">Course Name</label>
-                                <input type="text" name="course" id="course" class="form-control" placeholder="Enter course name">
+                                <input type="text" name="course" id="course" class="form-control" placeholder="Enter course name" value="<?php echo htmlspecialchars($course); ?>">
                                 <div class="error-message" id="course-error">Please enter a course name</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="lecturer" class="form-label">Lecturer Name</label>
-                                <input type="text" name="lecturer" id="lecturer" class="form-control" placeholder="Enter lecturer's name">
+                                <input type="text" name="lecturer" id="lecturer" class="form-control" placeholder="Enter lecturer's name" value="<?php echo htmlspecialchars($lecturer); ?>">
                                 <div class="error-message" id="lecturer-error">Please enter a lecturer name</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="subject" class="form-label">Subject</label>
-                                <input type="text" name="subject" id="subject" class="form-control" placeholder="Enter subject">
+                                <input type="text" name="subject" id="subject" class="form-control" placeholder="Enter subject" value="<?php echo htmlspecialchars($subject); ?>">
                                 <div class="error-message" id="subject-error">Please enter a subject</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="code" class="form-label">Course Code</label>
-                                <input type="text" name="code" id="code" class="form-control" placeholder="Enter course code">
+                                <input type="text" name="code" id="code" class="form-control" placeholder="Enter course code" value="<?php echo htmlspecialchars($code); ?>">
                                 <div class="error-message" id="code-error">Please enter a course code</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="student-name" class="form-label">Student Name</label>
-                                <input type="text" name="student-name" id="student-name" class="form-control" placeholder="Enter your name">
+                                <input type="text" name="student-name" id="student-name" class="form-control" placeholder="Enter your name" value="<?php echo htmlspecialchars($student_name); ?>">
                                 <div class="error-message" id="student-name-error">Please enter your name</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="reg-no" class="form-label">Registration Number</label>
-                                <input type="text" name="reg-no" id="reg-no" class="form-control" placeholder="Enter registration number">
+                                <input type="text" name="reg-no" id="reg-no" class="form-control" placeholder="Enter registration number" value="<?php echo htmlspecialchars($reg_no); ?>">
                                 <div class="error-message" id="reg-no-error">Please enter your registration number</div>
                             </div>
                         </div>
                         
-                        <div id="group-fields" style="display: none;">
+                        <div id="group-fields" style="<?php if ($cover_type !== 'group') echo 'display: none;'; ?>">
                             <div class="form-group">
                                 <label for="program" class="form-label">Program</label>
-                                <input type="text" name="program" id="program" class="form-control" placeholder="e.g., BACHELOR IN INFORMATION TECHNOLOGY">
+                                <input type="text" name="program" id="program" class="form-control" placeholder="e.g., BACHELOR IN INFORMATION TECHNOLOGY" value="<?php echo htmlspecialchars($program); ?>">
                                 <div class="error-message" id="program-error">Please enter a program name</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="module-name" class="form-label">Module Name</label>
-                                <input type="text" name="module-name" id="module-name" class="form-control" placeholder="e.g., PROGRAMMING IN JAVA">
+                                <input type="text" name="module-name" id="module-name" class="form-control" placeholder="e.g., PROGRAMMING IN JAVA" value="<?php echo htmlspecialchars($module_name); ?>">
                                 <div class="error-message" id="module-name-error">Please enter a module name</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="instructor" class="form-label">Instructor Name</label>
-                                <input type="text" name="instructor" id="instructor" class="form-control" placeholder="e.g., Eng. Dr. Ahmed Kijazi">
+                                <input type="text" name="instructor" id="instructor" class="form-control" placeholder="e.g., Eng. Dr. Ahmed Kijazi" value="<?php echo htmlspecialchars($instructor); ?>">
                                 <div class="error-message" id="instructor-error">Please enter an instructor name</div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="module-code" class="form-label">Module Code</label>
-                                <input type="text" name="module-code" id="module-code" class="form-control" placeholder="e.g., ITU07312">
+                                <input type="text" name="module-code" id="module-code" class="form-control" placeholder="e.g., ITU07312" value="<?php echo htmlspecialchars($module_code); ?>">
                                 <div class="error-message" id="module-code-error">Please enter a module code</div>
                             </div>
                             
                             <div class="dynamic-fields">
                                 <label class="form-label">Group Members</label>
                                 <div id="members-container">
-                                    <div class="member-row">
-                                        <input type="text" class="form-control member-name" placeholder="Member Name">
-                                        <input type="text" class="form-control member-reg" placeholder="Registration Number">
-                                        <button type="button" class="remove-member-btn"><i class="fas fa-times"></i></button>
-                                    </div>
+                                    <?php
+                                    if (!empty($members)) {
+                                        foreach ($members as $index => $member) {
+                                            echo '<div class="member-row">
+                                                <input type="text" class="form-control member-name" name="members['.$index.'][name]" placeholder="Member Name" value="'.htmlspecialchars($member['name'] ?? '').'">
+                                                <input type="text" class="form-control member-reg" name="members['.$index.'][reg]" placeholder="Registration Number" value="'.htmlspecialchars($member['reg'] ?? '').'">
+                                                <button type="button" class="remove-member-btn"><i class="fas fa-times"></i></button>
+                                            </div>';
+                                        }
+                                    } else {
+                                        echo '<div class="member-row">
+                                            <input type="text" class="form-control member-name" name="members[0][name]" placeholder="Member Name">
+                                            <input type="text" class="form-control member-reg" name="members[0][reg]" placeholder="Registration Number">
+                                            <button type="button" class="remove-member-btn"><i class="fas fa-times"></i></button>
+                                        </div>';
+                                    }
+                                    ?>
                                 </div>
                                 <button type="button" id="add-member" class="btn btn-outline add-member-btn" style="margin-top: 1rem;">
                                     <i class="fas fa-plus"></i> Add Member
@@ -516,39 +895,65 @@
                         
                         <div class="form-group">
                             <label for="year" class="form-label">Academic Year</label>
-                            <input type="number" name="year" id="year" class="form-control" min="2000" max="2025" placeholder="Enter academic year">
+                            <input type="number" name="year" id="year" class="form-control" min="2000" max="2025" placeholder="Enter academic year" value="<?php echo htmlspecialchars($year); ?>">
                             <div class="error-message" id="year-error">Please enter a valid academic year</div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary btn-block">
+                        <button type="submit" name="generate" value="true" class="btn btn-primary btn-block">
                             <i class="fas fa-magic"></i> Generate Cover Page
                         </button>
                     </form>
                 </div>
             </div>
             
+            <?php if (isset($_POST['generate'])): ?>
             <div id="preview-section" class="preview-section">
                 <div class="card preview-card">
                     <div class="card-header">
                         <h2><i class="fas fa-eye"></i> Cover Page Preview</h2>
                     </div>
                     <div class="card-body">
-                        <div id="cover-preview" class="cover-template"></div>
+                        <div id="cover-preview" class="cover-template">
+                            <?php
+                            if ($cover_type === 'individual') {
+                                generateIndividualCover($course, $lecturer, $subject, $code, $student_name, $reg_no, $year);
+                            } else if ($cover_type === 'group') {
+                                generateGroupCover($program, $module_name, $instructor, $module_code, $year, $members);
+                            }
+                            ?>
+                        </div>
                         
                         <div class="action-buttons">
-                            <button id="download-pdf" class="btn btn-primary">
-                                <i class="fas fa-download"></i> Download PDF
-                            </button>
-                            <button id="print-btn" class="btn btn-outline">
-                                <i class="fas fa-print"></i> Print Document
-                            </button>
-                            <button id="new-cover" class="btn btn-outline">
+                            <form method="POST" target="_blank" style="display: inline;">
+                                <input type="hidden" name="print" value="true">
+                                <input type="hidden" name="cover-type" value="<?php echo htmlspecialchars($cover_type); ?>">
+                                <input type="hidden" name="course" value="<?php echo htmlspecialchars($course); ?>">
+                                <input type="hidden" name="lecturer" value="<?php echo htmlspecialchars($lecturer); ?>">
+                                <input type="hidden" name="subject" value="<?php echo htmlspecialchars($subject); ?>">
+                                <input type="hidden" name="code" value="<?php echo htmlspecialchars($code); ?>">
+                                <input type="hidden" name="student-name" value="<?php echo htmlspecialchars($student_name); ?>">
+                                <input type="hidden" name="reg-no" value="<?php echo htmlspecialchars($reg_no); ?>">
+                                <input type="hidden" name="program" value="<?php echo htmlspecialchars($program); ?>">
+                                <input type="hidden" name="module-name" value="<?php echo htmlspecialchars($module_name); ?>">
+                                <input type="hidden" name="instructor" value="<?php echo htmlspecialchars($instructor); ?>">
+                                <input type="hidden" name="module-code" value="<?php echo htmlspecialchars($module_code); ?>">
+                                <input type="hidden" name="year" value="<?php echo htmlspecialchars($year); ?>">
+                                <?php foreach ($members as $index => $member): ?>
+                                    <input type="hidden" name="members[<?php echo $index; ?>][name]" value="<?php echo htmlspecialchars($member['name'] ?? ''); ?>">
+                                    <input type="hidden" name="members[<?php echo $index; ?>][reg]" value="<?php echo htmlspecialchars($member['reg'] ?? ''); ?>">
+                                <?php endforeach; ?>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-print"></i> Print Document
+                                </button>
+                            </form>
+                            <button id="new-cover" class="btn btn-outline" onclick="window.location.href=window.location.href.split('?')[0]">
                                 <i class="fas fa-plus"></i> Create New
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
             
             <div class="features-grid">
                 <div class="feature-card">
@@ -578,27 +983,39 @@
         </div>
     </section>
 
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="preview-modal">
+        <div class="preview-content">
+            <button class="close-preview" onclick="closePreview()">&times;</button>
+            <h2>Cover Page Preview</h2>
+            <div id="preview-content">
+                <!-- Preview content will be inserted here -->
+            </div>
+            <div class="preview-actions">
+                <button class="btn btn-primary" onclick="printCover()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn btn-outline" onclick="closePreview()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('coverpage-form');
-            const previewSection = document.getElementById('preview-section');
-            const coverPreview = document.getElementById('cover-preview');
-            const downloadBtn = document.getElementById('download-pdf');
-            const printBtn = document.getElementById('print-btn');
-            const newCoverBtn = document.getElementById('new-cover');
             const addMemberBtn = document.getElementById('add-member');
             const membersContainer = document.getElementById('members-container');
-            
-            // Initialize with first member row
-            addInitialMemberRow();
+            const form = document.getElementById('coverpage-form');
             
             // Add member functionality
             addMemberBtn.addEventListener('click', function() {
+                const memberCount = membersContainer.children.length;
                 const memberRow = document.createElement('div');
                 memberRow.className = 'member-row';
                 memberRow.innerHTML = `
-                    <input type="text" class="form-control member-name" placeholder="Member Name">
-                    <input type="text" class="form-control member-reg" placeholder="Registration Number">
+                    <input type="text" class="form-control member-name" name="members[${memberCount}][name]" placeholder="Member Name">
+                    <input type="text" class="form-control member-reg" name="members[${memberCount}][reg]" placeholder="Registration Number">
                     <button type="button" class="remove-member-btn"><i class="fas fa-times"></i></button>
                 `;
                 membersContainer.appendChild(memberRow);
@@ -611,210 +1028,93 @@
                 });
             });
             
-            // Form submission
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Clear previous errors
-                clearErrors();
-                
-                const coverType = document.getElementById('cover-type').value;
-                
-                // Validate form
-                if (!coverType) {
-                    showError('cover-type', 'Please select a cover page type');
-                    return;
-                }
-                
-                if (coverType === 'individual') {
-                    if (!validateIndividualForm()) {
-                        return;
+            // Add event listeners to existing remove buttons
+            document.querySelectorAll('.remove-member-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (membersContainer.children.length > 1) {
+                        membersContainer.removeChild(btn.parentElement);
                     }
-                    generateIndividualCover();
-                } else if (coverType === 'group') {
-                    if (!validateGroupForm()) {
-                        return;
-                    }
-                    generateGroupCover();
-                }
-                
-                previewSection.style.display = 'block';
-                previewSection.scrollIntoView({ behavior: 'smooth' });
-            });
-            
-            // Download PDF functionality
-            downloadBtn.addEventListener('click', function() {
-                const element = document.getElementById('cover-preview');
-                const opt = {
-                    margin: 10,
-                    filename: 'cover_page.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2,
-                        useCORS: true,
-                        logging: true
-                    },
-                    jsPDF: { 
-                        unit: 'mm', 
-                        format: 'a4', 
-                        orientation: 'portrait' 
-                    }
-                };
-                
-                // Clone the element to avoid issues with the original
-                const clone = element.cloneNode(true);
-                
-                // Make sure the clone is visible for rendering
-                clone.style.display = 'block';
-                clone.style.width = '21cm';
-                clone.style.minHeight = '29.7cm';
-                clone.style.padding = '2cm';
-                clone.style.margin = '0 auto';
-                clone.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
-                clone.style.background = 'white';
-                clone.style.fontFamily = "'Times New Roman', serif";
-                
-                document.body.appendChild(clone);
-                
-                // Generate PDF from the clone
-                html2pdf().set(opt).from(clone).save().then(() => {
-                    // Remove the clone after generating the PDF
-                    document.body.removeChild(clone);
                 });
-            });
-            
-            // Print functionality
-            printBtn.addEventListener('click', function() {
-                const printContents = document.getElementById('cover-preview').innerHTML;
-                const originalContents = document.body.innerHTML;
-                
-                document.body.innerHTML = printContents;
-                window.print();
-                document.body.innerHTML = originalContents;
-                window.location.reload();
-            });
-            
-            // New cover button
-            newCoverBtn.addEventListener('click', function() {
-                previewSection.style.display = 'none';
-                form.reset();
-                // Reset member rows
-                membersContainer.innerHTML = '';
-                addInitialMemberRow();
-                clearErrors();
-                window.scrollTo(0, 0);
             });
             
             // Add input validation
             const yearInput = document.getElementById('year');
-            yearInput.addEventListener('input', function() {
-                if (yearInput.value.length > 4) {
-                    yearInput.value = yearInput.value.slice(0, 4);
+            if (yearInput) {
+                yearInput.addEventListener('input', function() {
+                    if (yearInput.value.length > 4) {
+                        yearInput.value = yearInput.value.slice(0, 4);
+                    }
+                });
+            }
+            
+            // Form submission for preview
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Basic validation
+                let isValid = true;
+                const coverType = document.getElementById('cover-type').value;
+                
+                if (!coverType) {
+                    document.getElementById('cover-type-error').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('cover-type-error').style.display = 'none';
+                }
+                
+                if (coverType === 'individual') {
+                    // Validate individual fields
+                    const requiredFields = ['course', 'lecturer', 'subject', 'code', 'student-name', 'reg-no'];
+                    requiredFields.forEach(field => {
+                        const element = document.getElementById(field);
+                        if (!element.value.trim()) {
+                            document.getElementById(`${field}-error`).style.display = 'block';
+                            isValid = false;
+                        } else {
+                            document.getElementById(`${field}-error`).style.display = 'none';
+                        }
+                    });
+                } else if (coverType === 'group') {
+                    // Validate group fields
+                    const requiredFields = ['program', 'module-name', 'instructor', 'module-code'];
+                    requiredFields.forEach(field => {
+                        const element = document.getElementById(field);
+                        if (!element.value.trim()) {
+                            document.getElementById(`${field}-error`).style.display = 'block';
+                            isValid = false;
+                        } else {
+                            document.getElementById(`${field}-error`).style.display = 'none';
+                        }
+                    });
+                    
+                    // Validate at least one member
+                    const memberNames = document.querySelectorAll('.member-name');
+                    let hasMember = false;
+                    memberNames.forEach(input => {
+                        if (input.value.trim()) hasMember = true;
+                    });
+                    
+                    if (!hasMember) {
+                        document.getElementById('members-error').style.display = 'block';
+                        isValid = false;
+                    } else {
+                        document.getElementById('members-error').style.display = 'none';
+                    }
+                }
+                
+                // Validate year
+                if (!yearInput.value || yearInput.value < 2000 || yearInput.value > 2025) {
+                    document.getElementById('year-error').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('year-error').style.display = 'none';
+                }
+                
+                if (isValid) {
+                    // Show preview instead of submitting the form directly
+                    showPreview();
                 }
             });
-            
-            function addInitialMemberRow() {
-                const memberRow = document.createElement('div');
-                memberRow.className = 'member-row';
-                memberRow.innerHTML = `
-                    <input type="text" class="form-control member-name" placeholder="Member Name">
-                    <input type="text" class="form-control member-reg" placeholder="Registration Number">
-                    <button type="button" class="remove-member-btn"><i class="fas fa-times"></i></button>
-                `;
-                membersContainer.appendChild(memberRow);
-                
-                // Add event listener to remove button
-                memberRow.querySelector('.remove-member-btn').addEventListener('click', function() {
-                    if (membersContainer.children.length > 1) {
-                        membersContainer.removeChild(memberRow);
-                    }
-                });
-            }
-            
-            function validateIndividualForm() {
-                let isValid = true;
-                
-                const fields = [
-                    {id: 'course', message: 'Please enter a course name'},
-                    {id: 'lecturer', message: 'Please enter a lecturer name'},
-                    {id: 'subject', message: 'Please enter a subject'},
-                    {id: 'code', message: 'Please enter a course code'},
-                    {id: 'student-name', message: 'Please enter your name'},
-                    {id: 'reg-no', message: 'Please enter your registration number'},
-                    {id: 'year', message: 'Please enter a valid academic year'}
-                ];
-                
-                fields.forEach(field => {
-                    const element = document.getElementById(field.id);
-                    if (!element.value.trim()) {
-                        showError(field.id, field.message);
-                        isValid = false;
-                    }
-                });
-                
-                return isValid;
-            }
-            
-            function validateGroupForm() {
-                let isValid = true;
-                
-                const fields = [
-                    {id: 'program', message: 'Please enter a program name'},
-                    {id: 'module-name', message: 'Please enter a module name'},
-                    {id: 'instructor', message: 'Please enter an instructor name'},
-                    {id: 'module-code', message: 'Please enter a module code'},
-                    {id: 'year', message: 'Please enter a valid academic year'}
-                ];
-                
-                fields.forEach(field => {
-                    const element = document.getElementById(field.id);
-                    if (!element.value.trim()) {
-                        showError(field.id, field.message);
-                        isValid = false;
-                    }
-                });
-                
-                // Validate member fields
-                const memberNames = document.querySelectorAll('.member-name');
-                const memberRegs = document.querySelectorAll('.member-reg');
-                let membersValid = true;
-                
-                for (let i = 0; i < memberNames.length; i++) {
-                    if (!memberNames[i].value.trim() || !memberRegs[i].value.trim()) {
-                        membersValid = false;
-                    }
-                }
-                
-                if (!membersValid) {
-                    document.getElementById('members-error').style.display = 'block';
-                    isValid = false;
-                }
-                
-                return isValid;
-            }
-            
-            function showError(fieldId, message) {
-                const field = document.getElementById(fieldId);
-                const errorElement = document.getElementById(fieldId + '-error');
-                
-                field.classList.add('error');
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-            }
-            
-            function clearErrors() {
-                // Remove error classes
-                const errorFields = document.querySelectorAll('.form-control.error');
-                errorFields.forEach(field => {
-                    field.classList.remove('error');
-                });
-                
-                // Hide error messages
-                const errorMessages = document.querySelectorAll('.error-message');
-                errorMessages.forEach(message => {
-                    message.style.display = 'none';
-                });
-            }
         });
         
         function toggleFormFields() {
@@ -834,82 +1134,46 @@
             }
         }
         
-        function generateIndividualCover() {
-            const course = document.getElementById('course').value;
-            const lecturer = document.getElementById('lecturer').value;
-            const subject = document.getElementById('subject').value;
-            const code = document.getElementById('code').value;
-            const studentName = document.getElementById('student-name').value;
-            const regNo = document.getElementById('reg-no').value;
-            const year = document.getElementById('year').value;
+        function showPreview() {
+            // Get form data
+            const formData = new FormData(document.getElementById('coverpage-form'));
             
-            const coverHTML = `
-                <div class="cover-template individual">
-                    <div class="institution-name">COLLEGE OF BUSINESS EDUCATION (CBE)<br>DAR ES SALAAM CAMPUS</div>
+            // Create a preview of the cover page
+            const coverType = formData.get('cover-type');
+            let previewHTML = `
+                <div class="cover-template ${coverType}">
+                    <div class="institution-name">${coverType === 'individual' ? 'COLLEGE OF BUSINESS EDUCATION (CBE)<br>DAR ES SALAAM CAMPUS' : 'COLLEGE OF BUSINESS EDUCATION<br>DAR ES SALAAM'}</div>
                     <div class="logo-container">
-                        <!-- Replace with your actual logo path -->
                         <img src="CBE_Logo2.png" alt="CBE Logo" class="logo">
                     </div>
-                    
-                    <div class="document-type">INDIVIDUAL ASSIGNMENT:</div>
-                    
-                    <div class="course-info">
-                        <div><strong>COURSE:</strong> ${course}</div>
-                        <div><strong>LECTURER NAME:</strong> ${lecturer}</div>
-                        <div><strong>SUBJECT:</strong> ${subject}</div>
-                        <div><strong>CODE:</strong> ${code}</div>
-                        <div><strong>NAME:</strong> ${studentName}</div>
-                        <div><strong>REG NO:</strong> ${regNo}</div>
-                        <div><strong>YEAR:</strong> ${year}</div>
-                    </div>
-                
-                    <div class="signature-area">
-                        
-                    </div>
-                </div>
             `;
             
-            document.getElementById('cover-preview').innerHTML = coverHTML;
-        }
-        
-        function generateGroupCover() {
-            const program = document.getElementById('program').value;
-            const moduleName = document.getElementById('module-name').value;
-            const instructor = document.getElementById('instructor').value;
-            const moduleCode = document.getElementById('module-code').value;
-            const year = document.getElementById('year').value;
-            
-            // Get group members
-            const memberRows = document.querySelectorAll('.member-row');
-            let membersHTML = '';
-            
-            memberRows.forEach((row, index) => {
-                const name = row.querySelector('.member-name').value || '__________';
-                const reg = row.querySelector('.member-reg').value || '__________';
-                membersHTML += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${name}</td>
-                        <td>${reg}</td>
-                    </tr>
-                `;
-            });
-            
-            const coverHTML = `
-                <div class="cover-template group">
-                    <div class="institution-name">COLLEGE OF BUSINESS EDUCATION<br>DAR ES SALAAM</div>
-                    <div class="logo-container">
-                        <img src="CBE_Logo2.png" alt="CBE Logo" class="logo">
-                    </div>
-                    
+            if (coverType === 'individual') {
+                previewHTML += `
+                    <div class="document-type">INDIVIDUAL ASSIGNMENT:</div>
                     <div class="course-info">
-                        <div><strong>PROGRAM:</strong> ${program}</div>
-                        <div><strong>MODULE NAME:</strong> ${moduleName}</div>
-                        <div><strong>INSTRUCTOR:</strong> ${instructor}</div>
-                        <div><strong>MODULE CODE:</strong> ${moduleCode}</div>
-                        <div><strong>YEAR:</strong> ${year}</div>
+                        <div><strong>COURSE:</strong> ${formData.get('course')}</div>
+                        <div><strong>LECTURER NAME:</strong> ${formData.get('lecturer')}</div>
+                        <div><strong>SUBJECT:</strong> ${formData.get('subject')}</div>
+                        <div><strong>CODE:</strong> ${formData.get('code')}</div>
+                        <div><strong>NAME:</strong> ${formData.get('student-name')}</div>
+                        <div><strong>REG NO:</strong> ${formData.get('reg-no')}</div>
+                        <div><strong>YEAR:</strong> ${formData.get('year')}</div>
                     </div>
-                    
+                    <div class="signature-area">
+                        <div class="signature-line">Student's Signature</div>
+                        <div class="signature-line">Lecturer's Signature</div>
+                    </div>
+                `;
+            } else {
+                previewHTML += `
+                    <div class="course-info">
+                        <div><strong>PROGRAM:</strong> ${formData.get('program')}</div>
+                        <div><strong>MODULE NAME:</strong> ${formData.get('module-name')}</div>
+                        <div><strong>INSTRUCTOR:</strong> ${formData.get('instructor')}</div>
+                        <div><strong>MODULE CODE:</strong> ${formData.get('module-code')}</div>
+                        <div><strong>YEAR:</strong> ${formData.get('year')}</div>
+                    </div>
                     <table>
                         <thead>
                             <tr>
@@ -919,18 +1183,69 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${membersHTML}
+                `;
+                
+                // Add group members
+                let counter = 1;
+                for (let i = 0; i < formData.getAll('members[]').length; i++) {
+                    const name = formData.get(`members[${i}][name]`);
+                    const reg = formData.get(`members[${i}][reg]`);
+                    if (name || reg) {
+                        previewHTML += `
+                            <tr>
+                                <td>${counter}</td>
+                                <td>${name || ''}</td>
+                                <td>${reg || ''}</td>
+                            </tr>
+                        `;
+                        counter++;
+                    }
+                }
+                
+                previewHTML += `
                         </tbody>
                     </table>
-                    
                     <div class="signature-area">
-                       
+                        <div class="signature-line">Group Representative</div>
+                        <div class="signature-line">Instructor's Signature</div>
                     </div>
-                </div>
-            `;
+                `;
+            }
             
-            document.getElementById('cover-preview').innerHTML = coverHTML;
+            previewHTML += `</div>`;
+            
+            // Display preview in modal
+            document.getElementById('preview-content').innerHTML = previewHTML;
+            document.getElementById('preview-modal').style.display = 'block';
+        }
+        
+        function closePreview() {
+            document.getElementById('preview-modal').style.display = 'none';
+        }
+        
+        function printCover() {
+            // Submit the form to the print version
+            const form = document.getElementById('coverpage-form');
+            const printInput = document.createElement('input');
+            printInput.type = 'hidden';
+            printInput.name = 'print';
+            printInput.value = 'true';
+            form.appendChild(printInput);
+            
+            // Open in new tab for printing
+            form.target = '_blank';
+            form.submit();
+            
+            // Close the preview
+            closePreview();
         }
     </script>
 </body>
 </html>
+<?php
+// End output buffering and flush content
+ob_end_flush();
+?>
+<?php
+include("temperate/footer.php")
+?>

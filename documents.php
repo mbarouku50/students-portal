@@ -167,21 +167,19 @@ foreach ($semester_tables as $table) {
         <!-- Document Types Grid -->
         <div class="doc-types-grid">
             <?php foreach ($valid_types as $type_key => $type_info): ?>
-                <a href="category_<?php echo $type_key; ?>.php" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
+                <div class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
                     <i class="fas <?php echo $type_info['icon']; ?>"></i>
                     <h3><?php echo $type_info['name']; ?></h3>
                     <p>
                         <?php 
                         $count = 0;
                         foreach ($all_documents as $doc) {
-                            if (isset($doc['doc_type']) && $doc['doc_type'] === $type_key) {
-                                $count++;
-                            }
+                            if ($doc['doc_type'] === $type_key) $count++;
                         }
                         echo $count . ' document' . ($count !== 1 ? 's' : '');
                         ?>
                     </p>
-                </a>
+                    </div>
             <?php endforeach; ?>
         </div>
     </div>

@@ -34,71 +34,7 @@ include("../connection.php");
             min-height: 100vh;
         }
         
-        /* Sidebar Styles */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: linear-gradient(to bottom, var(--primary-color), #1a2a3a);
-            color: white;
-            height: 100vh;
-            position: fixed;
-            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-        }
         
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-        }
-        
-        .sidebar-header h2 {
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar-header p {
-            opacity: 0.8;
-            font-size: 0.9rem;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 1rem 0;
-        }
-        
-        .sidebar-menu li {
-            margin: 0.5rem 0;
-        }
-        
-        .sidebar-menu a {
-            color: white;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            padding: 0.8rem 1.5rem;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: rgba(255,255,255,0.1);
-            border-left: 3px solid var(--secondary-color);
-        }
-        
-        .sidebar-menu i {
-            margin-right: 1rem;
-            width: 20px;
-            text-align: center;
-            font-size: 1.1rem;
-        }
-        
-        .sidebar-menu .badge {
-            margin-left: auto;
-            background-color: var(--accent-color);
-            color: white;
-            border-radius: 10px;
-            padding: 0.2rem 0.6rem;
-            font-size: 0.75rem;
-        }
         
         /* Main Content Styles */
         .main-content {
@@ -360,8 +296,7 @@ include("../connection.php");
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-      <!-- Sidebar Navigation -->
-    <?php include('sidebar.php'); ?>
+      <?php include('sidebar.php'); ?>
 
     <!-- Main Content Area -->
     <main class="main-content">

@@ -1,5 +1,10 @@
 <?php
 session_start();
+// Sample user data - you'll replace this with your actual user data
+if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
+    $_SESSION['user_fullname'] = "John Doe";
+    $_SESSION['profile_picture'] = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80";
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -8,6 +13,7 @@ session_start();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CBE student-portal</title>
     <style>
+        /* Your existing CSS remains intact */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
@@ -60,6 +66,7 @@ session_start();
         nav ul {
             display: flex;
             list-style: none;
+            align-items: center;
         }
         
         nav ul li {
@@ -71,6 +78,12 @@ session_start();
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        
+        nav ul li a i {
+            margin-right: 8px;
         }
         
         nav ul li a:hover {
@@ -303,6 +316,113 @@ session_start();
                 font-size: 1.1rem;
             }
         }
+
+        /* NEW STYLES FOR ENHANCED HEADER */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 50px;
+            transition: background-color 0.3s;
+        }
+        
+        .user-profile:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .profile-picture {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--secondary-color);
+            margin-right: 10px;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .user-role {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+        
+        /* Dropdown menu for user profile */
+        .dropdown {
+            position: relative;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .dropdown-content a {
+            color: var(--dark-color);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s;
+        }
+        
+        .dropdown-content a i {
+            color: var(--secondary-color);
+            margin-right: 8px;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .dropdown.active .dropdown-content {
+            display: block;
+        }
+        
+        /* Mobile adjustments for new elements */
+        @media (max-width: 900px) {
+            .dropdown-content {
+                position: static;
+                box-shadow: none;
+                background-color: rgba(0,0,0,0.1);
+                margin-top: 10px;
+            }
+            
+            .dropdown-content a {
+                color: white;
+                text-align: center;
+            }
+            
+            .dropdown-content a i {
+                color: white;
+            }
+            
+            .user-info {
+                display: none;
+            }
+        }
+        
+        /* Logo icon */
+        .logo i {
+            margin-right: 10px;
+            font-size: 2rem;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -310,7 +430,10 @@ session_start();
     <header>
         <div class="container">
             <div class="header-content">
-                <div class="logo">CBE <span>Student-Portal</span></div>
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    CBE <span>Student-Portal</span>
+                </div>
                 <div class="nav-toggle" id="navToggle" aria-label="Toggle navigation" tabindex="0">
                     <span></span>
                     <span></span>
@@ -318,16 +441,36 @@ session_start();
                 </div>
                 <nav>
                     <ul id="navMenu">
-                        <li><a href="index.php">Home</a></li>
-                        <li><a href="courses.php">Courses</a></li>
-                        <li><a href="documents.php">Document Types</a></li>
+                        <li><a href="index.php"><i class="fas fa-home"></i> Home</a></li>
+                        <li><a href="courses.php"><i class="fas fa-book"></i> Courses</a></li>
+                        <li><a href="documents.php"><i class="fas fa-file-alt"></i> Document Types</a></li>
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <li><a href="charts.php">Charts</a></li>
-                            <li><a href="stationary/index.php">Stationary</a></li>
-                            <li><a href="logout.php">Logout</a></li>
-                            <li><span style="color: white;">Welcome, <?php echo htmlspecialchars($_SESSION['user_fullname']); ?></span></li>
+                            <li><a href="charts.php"><i class="fas fa-chart-bar"></i> Charts</a></li>
+                            <li><a href="stationary/index.php"><i class="fas fa-pencil-alt"></i> Stationary</a></li>
+                            <li class="dropdown" id="userDropdown">
+                                <div class="user-profile" id="dropdownToggle">
+                                    <?php
+                                    // Check if user has a profile picture
+                                    $profile_pic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"; // Default image
+                                    if (isset($_SESSION['profile_picture']) && !empty($_SESSION['profile_picture'])) {
+                                        $profile_pic = $_SESSION['profile_picture'];
+                                    }
+                                    ?>
+                                    <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture">
+                                    <div class="user-info">
+                                        <span class="user-name"><?php echo htmlspecialchars($_SESSION['user_fullname']); ?></span>
+                                        <span class="user-role">Student</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down" style="margin-left: 5px; font-size: 0.8rem;"></i>
+                                </div>
+                                <div class="dropdown-content">
+                                    <a href="user_profile.php"><i class="fas fa-user"></i> My Profile</a>
+                                    <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                                    <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                                </div>
+                            </li>
                         <?php else: ?>
-                            <li><a href="login.php">Login</a></li>
+                            <li><a href="login.php"><i class="fas fa-sign-in-alt"></i> Login</a></li>
                         <?php endif; ?>
                     </ul>
                 </nav>
@@ -346,15 +489,44 @@ session_start();
             navMenu.classList.toggle('show');
         }
     });
-    </script>
     
-    <section class="hero">
-        <div class="container">
-            <h1>Your University Document Repository</h1>
-            <p>Find and share assignments, exams, notes, and other academic resources for all CBE bachelor degree programs.</p>
-            <div class="search-bar">
-                <input type="text" placeholder="Search for documents...">
-                <button>Search</button>
-            </div>
-        </div>
-    </section>
+    // Improved dropdown functionality
+    const dropdownToggle = document.getElementById('dropdownToggle');
+    const userDropdown = document.getElementById('userDropdown');
+    
+    if (dropdownToggle && userDropdown) {
+        // Toggle dropdown on click
+        dropdownToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userDropdown.classList.toggle('active');
+            
+            // Close other dropdowns if any
+            document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+                if (dropdown !== userDropdown && dropdown.classList.contains('active')) {
+                    dropdown.classList.remove('active');
+                }
+            });
+        });
+        
+        // Prevent dropdown from closing when clicking inside it
+        userDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+            dropdown.classList.remove('active');
+        });
+    });
+    
+    // Close dropdown when pressing Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+                dropdown.classList.remove('active');
+            });
+        }
+    });
+    </script>
