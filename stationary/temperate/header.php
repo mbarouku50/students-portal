@@ -55,7 +55,7 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
         }
         
         .logo {
-            font-size: 1.8rem;
+            font-size: 1.0rem;
             font-weight: bold;
         }
         

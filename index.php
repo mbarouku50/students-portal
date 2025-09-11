@@ -81,8 +81,8 @@ if ($result && $result->num_rows > 0) {
 
 <style>
     :root {
-        --primary: #4f46e5;
-        --primary-light: #6366f1;
+        --primary: #2c3e50;
+        --primary-light: #2c3e50;
         --secondary: #10b981;
         --dark: #1e293b;
         --light: #f8fafc;
@@ -91,7 +91,55 @@ if ($result && $result->num_rows > 0) {
         --shadow: 0 1px 3px rgba(0,0,0,0.1);
         --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
-    
+    .hero {
+            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9));
+            background-image: url('pexels-markusspiske-96593.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+        }
+        
+        .search-bar {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 4px 0 0 4px;
+            font-size: 1rem;
+        }
+        
+        .search-bar button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .search-bar button:hover {
+            background-color: #c0392b;
+        }
     .documents-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -276,7 +324,7 @@ if ($result && $result->num_rows > 0) {
         background: #f8fafc;
     }
 </style>
-<section class="hero">
+    <section class="hero">
         <div class="container">
             <h1>Your University Document Repository</h1>
             <p>Find and share assignments, exams, notes, and other academic resources for all CBE bachelor degree programs.</p>

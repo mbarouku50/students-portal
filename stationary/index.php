@@ -3,7 +3,8 @@ include("temperate/header.php")
 ?>
 <style>
 .hero-section {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%), url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1');
+    background: linear-gradient(135deg, #2c3e50; 50%, #3498db 100%);
+    background-image: url('istockphoto-649192402-612x612.jpg');
     background-blend-mode: overlay;
     background-size: cover;
     color: white;
@@ -59,7 +60,7 @@ include("temperate/header.php")
 }
 .service-card a {
     display: inline-block;
-    background: linear-gradient(90deg, #4f46e5, #7c3aed);
+    background: linear-gradient(90deg,  #2c3e50, #2c0e61ff);
     color: #fff;
     padding: 0.8rem 2.2rem;
     border-radius: 8px;
@@ -70,7 +71,7 @@ include("temperate/header.php")
     transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 .service-card a:hover {
-    background: linear-gradient(90deg, #7c3aed, #4f46e5);
+    background: linear-gradient(90deg, #2c3e50,  #2c3e50);
     box-shadow: 0 4px 16px rgba(44,62,80,0.13);
     transform: scale(1.04);
 }

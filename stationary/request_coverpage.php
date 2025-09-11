@@ -322,8 +322,8 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-dark: #4338ca;
+            --primary:  #2c3e50;
+            --primary-dark: #3498db;
             --secondary: #f9fafb;
             --dark: #1f2937;
             --light: #f3f4f6;
@@ -372,6 +372,26 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
             padding: 0 1.5rem;
             position: relative;
             z-index: 2;
+        }
+        .hero {
+            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9));
+            background-image: url('pexels-markusspiske-96593.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
         }
         
         .page-header {
@@ -790,13 +810,15 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
 </head>
 
 <body>
+    <section class="hero">
+        <div class="container">
+            <h1>Professional Cover Page Generator</h1>
+            <p>Create standardized cover pages for your academic documents in just a few clicks. Select your course and customize the template to match your requirements.</p>
+        </div>
+    </section>
+
     <section class="coverpage-hero">
         <div class="container">
-            <div class="page-header">
-                <h1>Professional Cover Page Generator</h1>
-                <p>Create standardized cover pages for your academic documents in just a few clicks. Select your course and customize the template to match your requirements.</p>
-            </div>
-            
             <div class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-file-alt"></i> Cover Page Details</h2>
@@ -950,7 +972,8 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
             <script>
             // Automatically open print dialog when modal is shown
             window.onload = function() {
-                if (document.getElementById('preview-modal')) {
+                var previewContent = document.getElementById('preview-content');
+                if (previewContent) {
                     setTimeout(function() {
                         printCoverOnly();
                     }, 500);
@@ -959,7 +982,11 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
             function printCoverOnly() {
                 var printContents = document.getElementById('preview-content').innerHTML;
                 var printWindow = window.open('', '', 'height=900,width=800');
-                printWindow.document.write('<html><head><title>Print Cover Page</title>');
+                if (!printWindow) {
+                    alert('Unable to open print window. Please allow pop-ups for this site.');
+                    return;
+                }
+                printWindow.document.write('<html><head><title></title>');
                 printWindow.document.write('<style>body{font-family:Times New Roman,serif;} .cover-template{width:21cm;min-height:29.7cm;padding:2cm;margin:0 auto;background:white;} .logo{max-width:150px;height:auto;} .signature-area{margin-top:3rem;display:flex;justify-content:space-between;} .signature-line{border-top:1px solid #000;width:200px;text-align:center;padding-top:5px;} @media print{body{margin:0;padding:0;} .cover-template{width:100%;height:100%;padding:0;margin:0;box-shadow:none;} .no-print{display:none!important;}}</style>');
                 printWindow.document.write('</head><body>');
                 printWindow.document.write(printContents);

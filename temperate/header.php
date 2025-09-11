@@ -55,12 +55,13 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
         }
         
         .logo {
-            font-size: 1.8rem;
+            font-size: 1.0rem;
             font-weight: bold;
         }
         
         .logo span {
             color: var(--secondary-color);
+            font-size: 1.0rem;
         }
         
         nav ul {
@@ -90,54 +91,6 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
             color: var(--secondary-color);
         }
         
-        .hero {
-            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9)), url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1');
-            background-size: cover;
-            background-position: center;
-            color: white;
-            padding: 4rem 0;
-            text-align: center;
-        }
-        
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .hero p {
-            font-size: 1.2rem;
-            max-width: 700px;
-            margin: 0 auto 2rem;
-        }
-        
-        .search-bar {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-        }
-        
-        .search-bar input {
-            flex: 1;
-            padding: 0.8rem;
-            border: none;
-            border-radius: 4px 0 0 4px;
-            font-size: 1rem;
-        }
-        
-        .search-bar button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 0 1.5rem;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        
-        .search-bar button:hover {
-            background-color: #c0392b;
-        }
         
         .main-content {
             padding: 3rem 0;
@@ -239,18 +192,7 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
             color: var(--primary-color);
         }
         
-        footer {
-            background-color: var(--dark-color);
-            color: white;
-            padding: 2rem 0;
-            text-align: center;
-        }
         
-        .footer-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
         
         .social-links {
             margin: 1rem 0;

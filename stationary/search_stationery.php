@@ -21,8 +21,8 @@ if ($result && $result->num_rows > 0) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-light: #6366f1;
+            --primary: #2c3e50;
+            --primary-light: #3498db;
             --secondary: #10b981;
             --dark: #1e293b;
             --light: #f8fafc;
