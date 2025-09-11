@@ -1,6 +1,4 @@
-
 <?php
-   
 include("temperate/header.php");
 
 // Start output buffering to capture content
@@ -19,7 +17,19 @@ $module_name = $_POST['module-name'] ?? '';
 $instructor = $_POST['instructor'] ?? '';
 $module_code = $_POST['module-code'] ?? '';
 $year = $_POST['year'] ?? date('Y');
-$members = $_POST['members'] ?? [];
+
+// Fix for group members data processing
+$members = [];
+if (isset($_POST['members']) && is_array($_POST['members'])) {
+    foreach ($_POST['members'] as $member) {
+        if (!empty($member['name']) || !empty($member['reg'])) {
+            $members[] = [
+                'name' => $member['name'] ?? '',
+                'reg' => $member['reg'] ?? ''
+            ];
+        }
+    }
+}
 
 // Check if we need to print
 $print_mode = isset($_POST['print']) && $_POST['print'] == 'true';
@@ -700,6 +710,7 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
         .course-info {
             margin: 1rem 0;
             text-align: left;
+            width: 100%;
         }
         
         .course-info div {
@@ -907,52 +918,60 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
             </div>
             
             <?php if (isset($_POST['generate'])): ?>
-            <div id="preview-section" class="preview-section">
-                <div class="card preview-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-eye"></i> Cover Page Preview</h2>
+            <div id="preview-modal" class="preview-modal" style="display:block;">
+                <div class="preview-content">
+                    <button class="close-preview" onclick="closePreview()">&times;</button>
+                    <h2>Cover Page Preview</h2>
+                    <div id="preview-content">
+                        <?php
+                        ob_start();
+                        if ($cover_type === 'individual') {
+                            generateIndividualCover($course, $lecturer, $subject, $code, $student_name, $reg_no, $year);
+                        } else if ($cover_type === 'group') {
+                            generateGroupCover($program, $module_name, $instructor, $module_code, $year, $members);
+                        }
+                        $coverHtml = ob_get_clean();
+                        echo $coverHtml;
+                        ?>
                     </div>
-                    <div class="card-body">
-                        <div id="cover-preview" class="cover-template">
-                            <?php
-                            if ($cover_type === 'individual') {
-                                generateIndividualCover($course, $lecturer, $subject, $code, $student_name, $reg_no, $year);
-                            } else if ($cover_type === 'group') {
-                                generateGroupCover($program, $module_name, $instructor, $module_code, $year, $members);
-                            }
-                            ?>
-                        </div>
-                        
-                        <div class="action-buttons">
-                            <form method="POST" target="_blank" style="display: inline;">
-                                <input type="hidden" name="print" value="true">
-                                <input type="hidden" name="cover-type" value="<?php echo htmlspecialchars($cover_type); ?>">
-                                <input type="hidden" name="course" value="<?php echo htmlspecialchars($course); ?>">
-                                <input type="hidden" name="lecturer" value="<?php echo htmlspecialchars($lecturer); ?>">
-                                <input type="hidden" name="subject" value="<?php echo htmlspecialchars($subject); ?>">
-                                <input type="hidden" name="code" value="<?php echo htmlspecialchars($code); ?>">
-                                <input type="hidden" name="student-name" value="<?php echo htmlspecialchars($student_name); ?>">
-                                <input type="hidden" name="reg-no" value="<?php echo htmlspecialchars($reg_no); ?>">
-                                <input type="hidden" name="program" value="<?php echo htmlspecialchars($program); ?>">
-                                <input type="hidden" name="module-name" value="<?php echo htmlspecialchars($module_name); ?>">
-                                <input type="hidden" name="instructor" value="<?php echo htmlspecialchars($instructor); ?>">
-                                <input type="hidden" name="module-code" value="<?php echo htmlspecialchars($module_code); ?>">
-                                <input type="hidden" name="year" value="<?php echo htmlspecialchars($year); ?>">
-                                <?php foreach ($members as $index => $member): ?>
-                                    <input type="hidden" name="members[<?php echo $index; ?>][name]" value="<?php echo htmlspecialchars($member['name'] ?? ''); ?>">
-                                    <input type="hidden" name="members[<?php echo $index; ?>][reg]" value="<?php echo htmlspecialchars($member['reg'] ?? ''); ?>">
-                                <?php endforeach; ?>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-print"></i> Print Document
-                                </button>
-                            </form>
-                            <button id="new-cover" class="btn btn-outline" onclick="window.location.href=window.location.href.split('?')[0]">
-                                <i class="fas fa-plus"></i> Create New
-                            </button>
-                        </div>
+                    <div class="preview-actions">
+                        <button class="btn btn-primary" onclick="printCoverOnly()">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                        <button class="btn btn-outline" onclick="window.location.href=window.location.href.split('?')[0]">
+                            <i class="fas fa-plus"></i> Create New
+                        </button>
+                        <button class="btn btn-outline" onclick="closePreview()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
                     </div>
                 </div>
             </div>
+            <script>
+            // Automatically open print dialog when modal is shown
+            window.onload = function() {
+                if (document.getElementById('preview-modal')) {
+                    setTimeout(function() {
+                        printCoverOnly();
+                    }, 500);
+                }
+            };
+            function printCoverOnly() {
+                var printContents = document.getElementById('preview-content').innerHTML;
+                var printWindow = window.open('', '', 'height=900,width=800');
+                printWindow.document.write('<html><head><title>Print Cover Page</title>');
+                printWindow.document.write('<style>body{font-family:Times New Roman,serif;} .cover-template{width:21cm;min-height:29.7cm;padding:2cm;margin:0 auto;background:white;} .logo{max-width:150px;height:auto;} .signature-area{margin-top:3rem;display:flex;justify-content:space-between;} .signature-line{border-top:1px solid #000;width:200px;text-align:center;padding-top:5px;} @media print{body{margin:0;padding:0;} .cover-template{width:100%;height:100%;padding:0;margin:0;box-shadow:none;} .no-print{display:none!important;}}</style>');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(printContents);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(function(){printWindow.print();}, 500);
+            }
+            function closePreview() {
+                document.getElementById('preview-modal').style.display = 'none';
+            }
+            </script>
             <?php endif; ?>
             
             <div class="features-grid">
@@ -1049,8 +1068,6 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
             
             // Form submission for preview
             form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
                 // Basic validation
                 let isValid = true;
                 const coverType = document.getElementById('cover-type').value;
@@ -1080,7 +1097,7 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
                     requiredFields.forEach(field => {
                         const element = document.getElementById(field);
                         if (!element.value.trim()) {
-                            document.getElementById(`${field}-error`).style.display = 'block';
+                            document.getElementById(`${field}-error`).display = 'block';
                             isValid = false;
                         } else {
                             document.getElementById(`${field}-error`).style.display = 'none';
@@ -1110,9 +1127,8 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
                     document.getElementById('year-error').style.display = 'none';
                 }
                 
-                if (isValid) {
-                    // Show preview instead of submitting the form directly
-                    showPreview();
+                if (!isValid) {
+                    e.preventDefault();
                 }
             });
         });
