@@ -2,6 +2,7 @@
 include("temperate/header.php")
 ?>
 <style>
+    
 .hero-section {
     background: linear-gradient(135deg, #2c3e50; 50%, #3498db 100%);
     background-image: url('istockphoto-649192402-612x612.jpg');

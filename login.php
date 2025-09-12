@@ -40,10 +40,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $_SESSION['user_id'] = $user['user_id'];
                     $_SESSION['user_email'] = $user['email'];
                     $_SESSION['user_fullname'] = $user['fullname'];
-                    
+                    // Fetch profile picture from database
+                    $profile_stmt = $conn->prepare("SELECT profile_picture FROM users WHERE user_id = ?");
+                    $profile_stmt->bind_param("i", $user['user_id']);
+                    $profile_stmt->execute();
+                    $profile_result = $profile_stmt->get_result();
+                    if ($profile_result->num_rows === 1) {
+                        $profile_row = $profile_result->fetch_assoc();
+                        if (!empty($profile_row['profile_picture'])) {
+                            $_SESSION['profile_picture'] = $profile_row['profile_picture'];
+                        } else {
+                            $_SESSION['profile_picture'] = "";
+                        }
+                    } else {
+                        $_SESSION['profile_picture'] = "";
+                    }
+                    $profile_stmt->close();
                     // Debugging - uncomment to verify session data
                     // echo "<pre>Session Data: "; print_r($_SESSION); echo "</pre>"; exit();
-                    
                     // Redirect to index.php
                     if (headers_sent()) {
                         die("Redirect failed. Please click this <a href='index.php'>link</a>");
