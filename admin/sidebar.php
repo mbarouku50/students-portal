@@ -6,7 +6,7 @@ $pending_print_count = 0;
 $total_users_count = 0;
 
 // Count pending print requests
-$pending_query = "SELECT COUNT(*) as count FROM print_submissions WHERE status = 'pending'";
+$pending_query = "SELECT COUNT(*) as count FROM print_jobs WHERE status = 'pending'";
 $pending_result = $conn->query($pending_query);
 if ($pending_result) {
     $pending_print_count = $pending_result->fetch_assoc()['count'];

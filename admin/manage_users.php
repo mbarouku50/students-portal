@@ -1,7 +1,5 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
 include("../connection.php");
 include("sidebar.php");
 
@@ -37,6 +35,8 @@ if ($section === 'users') {
         $where_conditions[] = "year = ?";
         $query_params[] = $year_filter;
     }
+
+    
 
     // Get total number of users
     $count_query = "SELECT COUNT(*) as total FROM users";
@@ -884,7 +884,7 @@ if ($section === 'users') {
                                         <div class="user-info">
                                             <div class="admin-avatar">
                                                 <?php if (!empty($record['profile_picture'])): ?>
-                                                    <img src="../uploads/profiles/<?php echo htmlspecialchars($record['profile_picture']); ?>" alt="Profile Picture">
+                                                    <img src="../admin/uploads/profiles/<?php echo htmlspecialchars($record['profile_picture']); ?>" alt="Profile Picture">
                                                 <?php else: ?>
                                                     <div class="user-avatar">
                                                         <?php echo strtoupper(substr($record['fullname'], 0, 1)); ?>

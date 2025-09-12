@@ -31,15 +31,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     
     // Handle profile picture update
-    $profile_picture_update = '';
-    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
-        $target_dir = "../uploads/profiles/";
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true);
+$profile_picture_update = '';
+if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
+    $target_dir = "../admin/uploads/profiles/";
+    
+    // Check if directory exists and create it with proper permissions
+    if (!file_exists($target_dir)) {
+        // Create directory recursively with proper permissions
+        if (!mkdir($target_dir, 0777, true)) {
+            $error_message = "Failed to create directory for profile pictures. Please check permissions.";
         }
-        
+    }
+    
+    // Check if directory is writable
+    if (!is_writable($target_dir)) {
+        $error_message = "Upload directory is not writable. Please check permissions.";
+    } else {
         // Delete old profile picture if exists
-        if (!empty($admin['profile_picture'])) {
+        if (!empty($admin['profile_picture']) && file_exists($target_dir . $admin['profile_picture'])) {
             unlink($target_dir . $admin['profile_picture']);
         }
         
@@ -49,8 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $target_file)) {
             $profile_picture_update = ", profile_picture = '$filename'";
+        } else {
+            $error_message = "Failed to upload image. Please try again.";
         }
     }
+}
     
     $sql = "UPDATE admin SET 
             fullname = '$fullname', 

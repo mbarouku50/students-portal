@@ -1,6 +1,99 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Start session before any output
+session_start();
 
 include("../connection.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Get admin details
+$admin_id = $_SESSION['admin_id'];
+$query = "SELECT * FROM admin WHERE admin_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $admin_id);
+$stmt->execute();
+$admin_result = $stmt->get_result();
+$admin_data = $admin_result->fetch_assoc();
+
+// Get statistics
+$users_count = $conn->query("SELECT COUNT(*) as total FROM users")->fetch_assoc()['total'];
+$courses_count = $conn->query("SELECT COUNT(*) as total FROM courses")->fetch_assoc()['total'];
+$stationery_count = $conn->query("SELECT COUNT(*) as total FROM stationery")->fetch_assoc()['total'];
+
+// Count all documents from all tables
+$document_tables = [
+    'first_year_sem1_documents', 
+    'first_year_sem2_documents',
+    'second_year_sem1_documents', 
+    'second_year_sem2_documents',
+    'third_year_sem1_documents', 
+    'third_year_sem2_documents',
+    'fourth_year_sem1_documents', 
+    'fourth_year_sem2_documents'
+];
+
+$documents_count = 0;
+foreach ($document_tables as $table) {
+    $result = $conn->query("SELECT COUNT(*) as total FROM $table");
+    if ($result) {
+        $documents_count += $result->fetch_assoc()['total'];
+    }
+}
+
+// Count PDF files
+$pdf_count = 0;
+foreach ($document_tables as $table) {
+    $result = $conn->query("SELECT COUNT(*) as total FROM $table WHERE file_type = 'pdf'");
+    if ($result) {
+        $pdf_count += $result->fetch_assoc()['total'];
+    }
+}
+
+// Count Word files
+$word_count = 0;
+foreach ($document_tables as $table) {
+    $result = $conn->query("SELECT COUNT(*) as total FROM $table WHERE file_type = 'doc' OR file_type = 'docx'");
+    if ($result) {
+        $word_count += $result->fetch_assoc()['total'];
+    }
+}
+
+// Get recent activities - using a more generic approach to avoid column name issues
+$activities = [];
+
+// First get recent user registrations
+$user_activities = $conn->query("SELECT fullname as title, created_at as date FROM users ORDER BY created_at DESC LIMIT 3");
+if ($user_activities) {
+    while ($row = $user_activities->fetch_assoc()) {
+        $row['type'] = 'user';
+        $activities[] = $row;
+    }
+}
+
+// Then get recent document uploads from the first table as example
+$doc_activities = $conn->query("SELECT file_name as title, uploaded_at as date FROM first_year_sem1_documents ORDER BY uploaded_at DESC LIMIT 2");
+if ($doc_activities) {
+    while ($row = $doc_activities->fetch_assoc()) {
+        $row['type'] = 'document';
+        $activities[] = $row;
+    }
+}
+
+// Sort activities by date
+usort($activities, function($a, $b) {
+    return strtotime($b['date']) - strtotime($a['date']);
+});
+
+// Take only the 5 most recent
+$activities = array_slice($activities, 0, 5);
 ?>
 
 <!DOCTYPE html>
@@ -34,8 +127,6 @@ include("../connection.php");
             min-height: 100vh;
         }
         
-        
-        
         /* Main Content Styles */
         .main-content {
             flex: 1;
@@ -60,11 +151,11 @@ include("../connection.php");
         .user-menu {
             display: flex;
             align-items: center;
+            gap: 15px;
         }
         
         .user-menu .user-info {
             text-align: right;
-            margin-right: 1rem;
         }
         
         .user-menu .user-name {
@@ -77,15 +168,17 @@ include("../connection.php");
         }
         
         .user-menu .avatar {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
-            background-color: var(--secondary-color);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
+            overflow: hidden;
+            border: 2px solid var(--secondary-color);
+        }
+        
+        .user-menu .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
         /* Dashboard Cards */
@@ -243,27 +336,9 @@ include("../connection.php");
         
         /* Responsive Styles */
         @media (max-width: 992px) {
-            .sidebar {
-                width: 80px;
-                overflow: hidden;
-            }
-            
-            .sidebar-header h2, .sidebar-header p, .sidebar-menu span {
-                display: none;
-            }
-            
-            .sidebar-menu a {
-                justify-content: center;
-                padding: 0.8rem;
-            }
-            
-            .sidebar-menu i {
-                margin-right: 0;
-                font-size: 1.3rem;
-            }
-            
             .main-content {
-                margin-left: 80px;
+                margin-left: 0;
+                padding: 1rem;
             }
         }
         
@@ -275,28 +350,38 @@ include("../connection.php");
             .quick-stats {
                 grid-template-columns: repeat(2, 1fr);
             }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .user-menu {
+                flex-direction: row-reverse;
+                align-self: flex-end;
+            }
         }
         
         @media (max-width: 576px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
             .quick-stats {
                 grid-template-columns: 1fr;
+            }
+            
+            .user-menu {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            
+            .user-info {
+                text-align: right;
             }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-      <?php include('sidebar.php'); ?>
+    <?php include('sidebar.php'); ?>
 
     <!-- Main Content Area -->
     <main class="main-content">
@@ -307,11 +392,17 @@ include("../connection.php");
             </div>
             <div class="user-menu">
                 <div class="user-info">
-                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['admin_fullname']); ?></div>
+                    <div class="user-name"><?php echo htmlspecialchars($admin_data['fullname'] ?? 'Administrator'); ?></div>
                     <div class="user-role">Administrator</div>
                 </div>
                 <div class="avatar">
-                    <?php echo strtoupper(substr($_SESSION['admin_fullname'], 0, 1)); ?>
+                    <?php if (!empty($admin_data['profile_picture'])): ?>
+                        <img src="../admin/uploads/profiles/<?php echo htmlspecialchars($record['profile_picture']); ?>" alt="Profile Picture">
+                    <?php else: ?>
+                        <div style="width:100%; height:100%; background:#3498db; color:white; display:flex; align-items:center; justify-content:center;">
+                            <?php echo strtoupper(substr($admin_data['fullname'] ?? 'A', 0, 1)); ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -325,14 +416,7 @@ include("../connection.php");
                         <i class="fas fa-users"></i>
                     </div>
                 </div>
-                <div class="card-value">
-                    <?php
-                    $query = "SELECT COUNT(*) as total FROM users";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
+                <div class="card-value"><?php echo $users_count; ?></div>
                 <div class="card-title">Registered Users</div>
             </div>
             
@@ -343,14 +427,7 @@ include("../connection.php");
                         <i class="fas fa-file-alt"></i>
                     </div>
                 </div>
-                <div class="card-value">
-                    <?php
-                    $query = "SELECT COUNT(*) as total FROM documents";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
+                <div class="card-value"><?php echo $documents_count; ?></div>
                 <div class="card-title">Uploaded Documents</div>
             </div>
             
@@ -361,26 +438,19 @@ include("../connection.php");
                         <i class="fas fa-book"></i>
                     </div>
                 </div>
-                <div class="card-value">
-                    <?php
-                    $query = "SELECT COUNT(DISTINCT program) as total FROM users";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
+                <div class="card-value"><?php echo $courses_count; ?></div>
                 <div class="card-title">Active Courses</div>
             </div>
             
             <div class="card">
                 <div class="card-header">
-                    <h3>Storage</h3>
+                    <h3>Stationery</h3>
                     <div class="card-icon storage">
-                        <i class="fas fa-database"></i>
+                        <i class="fas fa-pencil-alt"></i>
                     </div>
                 </div>
-                <div class="card-value">1.2GB</div>
-                <div class="card-title">Used of 2GB</div>
+                <div class="card-value"><?php echo $stationery_count; ?></div>
+                <div class="card-title">Stationery Items</div>
             </div>
         </div>
 
@@ -391,53 +461,25 @@ include("../connection.php");
         <div class="quick-stats">
             <div class="stat-card">
                 <i class="fas fa-user-graduate" style="color: #3498db; font-size: 1.5rem;"></i>
-                <div class="stat-value">
-                    <?php
-                    $query = "SELECT COUNT(*) as total FROM users WHERE role = 'student'";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
+                <div class="stat-value"><?php echo $users_count; ?></div>
                 <div class="stat-label">Students</div>
             </div>
             
             <div class="stat-card">
-                <i class="fas fa-chalkboard-teacher" style="color: #e74c3c; font-size: 1.5rem;"></i>
-                <div class="stat-value">
-                    <?php
-                    $query = "SELECT COUNT(*) as total FROM users WHERE role = 'lecturer'";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
-                <div class="stat-label">Lecturers</div>
+                <i class="fas fa-pencil-alt" style="color: #e74c3c; font-size: 1.5rem;"></i>
+                <div class="stat-value"><?php echo $stationery_count; ?></div>
+                <div class="stat-label">Stationery Items</div>
             </div>
             
             <div class="stat-card">
                 <i class="fas fa-file-pdf" style="color: #2ecc71; font-size: 1.5rem;"></i>
-                <div class="stat-value">
-                    <?php
-                    $query = "SELECT COUNT(*) as total FROM documents WHERE file_type = 'pdf'";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
+                <div class="stat-value"><?php echo $pdf_count; ?></div>
                 <div class="stat-label">PDF Files</div>
             </div>
             
             <div class="stat-card">
                 <i class="fas fa-file-word" style="color: #9b59b6; font-size: 1.5rem;"></i>
-                <div class="stat-value">
-                    <?php
-                    $query = "SELECT COUNT(*) as total FROM documents WHERE file_type = 'doc' OR file_type = 'docx'";
-                    $result = $conn->query($query);
-                    $row = $result->fetch_assoc();
-                    echo $row['total'];
-                    ?>
-                </div>
+                <div class="stat-value"><?php echo $word_count; ?></div>
                 <div class="stat-label">Word Docs</div>
             </div>
         </div>
@@ -445,55 +487,47 @@ include("../connection.php");
         <!-- Recent Activity -->
         <div class="section-title">
             <h2>Recent Activity</h2>
-            <a href="#" style="font-size: 0.9rem; color: var(--secondary-color);">View All</a>
+            <a href="activities.php" style="font-size: 0.9rem; color: var(--secondary-color);">View All</a>
         </div>
         <div class="recent-activity">
             <ul class="activity-list">
-                <li class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-text">New user registered: John Doe (BBA Program)</div>
-                        <div class="activity-time">10 minutes ago</div>
-                    </div>
-                </li>
-                <li class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-file-upload"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-text">New document uploaded: Financial Accounting Notes.pdf</div>
-                        <div class="activity-time">25 minutes ago</div>
-                    </div>
-                </li>
-                <li class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-comment"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-text">New comment on Marketing Case Study by Jane Smith</div>
-                        <div class="activity-time">1 hour ago</div>
-                    </div>
-                </li>
-                <li class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-text">User role updated: Jane Smith promoted to Moderator</div>
-                        <div class="activity-time">2 hours ago</div>
-                    </div>
-                </li>
-                <li class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-text">Document downloaded 15 times: Taxation Principles Guide</div>
-                        <div class="activity-time">3 hours ago</div>
-                    </div>
-                </li>
+                <?php if (!empty($activities)): ?>
+                    <?php foreach ($activities as $activity): ?>
+                        <li class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-<?php 
+                                    echo $activity['type'] == 'user' ? 'user-plus' : 
+                                         ($activity['type'] == 'document' ? 'file-upload' : 'bell');
+                                ?>"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-text">
+                                    <?php 
+                                    if ($activity['type'] == 'user') {
+                                        echo "New user registered: " . htmlspecialchars($activity['title']);
+                                    } else if ($activity['type'] == 'document') {
+                                        echo "New document uploaded: " . htmlspecialchars($activity['title']);
+                                    } else {
+                                        echo htmlspecialchars($activity['title']);
+                                    }
+                                    ?>
+                                </div>
+                                <div class="activity-time">
+                                    <?php 
+                                    $date = new DateTime($activity['date']);
+                                    echo $date->format('M j, Y \a\t g:i A');
+                                    ?>
+                                </div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-text">No recent activities found.</div>
+                        </div>
+                    </li>
+                <?php endif; ?>
             </ul>
         </div>
     </main>

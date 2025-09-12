@@ -229,7 +229,7 @@
             
             <div class="footer-bottom">
                 <p>&copy; 2025 CBE Doc's Store. All rights reserved.</p>
-                <p><a href="admin_login.php">Admin Login</a> | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+                <p><a href="admin_login.php">Portal Login</a> | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
             </div>
         </div>
     </footer>

@@ -61,6 +61,7 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
         
         .logo span {
             color: var(--secondary-color);
+            font-size: 1.0rem;
         }
         
         nav ul {
@@ -239,19 +240,6 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
             color: var(--primary-color);
         }
         
-        footer {
-            background-color: var(--dark-color);
-            color: white;
-            padding: 2rem 0;
-            text-align: center;
-        }
-        
-        .footer-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
         .social-links {
             margin: 1rem 0;
         }
@@ -420,7 +408,7 @@ if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {
         
         /* Logo icon */
         .logo i {
-            margin-right: 10px;
+            margin-right: 1px;
             font-size: 2rem;
         }
     </style>

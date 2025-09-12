@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Handle profile picture upload
     $profile_picture = '';
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
-        $target_dir = "../uploads/profiles/";
+        $target_dir = "../admin/uploads/profiles/";
         if (!file_exists($target_dir)) {
             mkdir($target_dir, 0777, true);
         }
