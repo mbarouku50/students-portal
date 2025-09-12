@@ -960,6 +960,9 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
                         <button class="btn btn-primary" onclick="printCoverOnly()">
                             <i class="fas fa-print"></i> Print
                         </button>
+                        <button class="btn btn-success" onclick="downloadCoverPDF()">
+                            <i class="fas fa-download"></i> Download PDF
+                        </button>
                         <button class="btn btn-outline" onclick="window.location.href=window.location.href.split('?')[0]">
                             <i class="fas fa-plus"></i> Create New
                         </button>
@@ -995,6 +998,38 @@ function generateGroupCover($program, $module_name, $instructor, $module_code, $
                 printWindow.focus();
                 setTimeout(function(){printWindow.print();}, 500);
             }
+            // Download cover page as PDF using html2pdf.js
+            function downloadCoverPDF() {
+                var element = document.getElementById('preview-content');
+                if (!element) {
+                    alert('Preview not found!');
+                    return;
+                }
+                // Load html2pdf.js dynamically if not loaded
+                if (typeof html2pdf === 'undefined') {
+                    var script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                    script.onload = function() {
+                        html2pdf().set({
+                            margin: 0.5,
+                            filename: 'cover_page.pdf',
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2 },
+                            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                        }).from(element).save();
+                    };
+                    document.body.appendChild(script);
+                } else {
+                    html2pdf().set({
+                        margin: 0.5,
+                        filename: 'cover_page.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                    }).from(element).save();
+                }
+            }
+
             function closePreview() {
                 document.getElementById('preview-modal').style.display = 'none';
             }
