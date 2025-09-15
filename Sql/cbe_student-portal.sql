@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Sep 02, 2025 at 11:07 AM
+-- Generation Time: Sep 12, 2025 at 12:41 PM
 -- Server version: 10.11.13-MariaDB-0+deb12u1
 -- PHP Version: 8.2.29
 
@@ -31,15 +31,21 @@ CREATE TABLE `admin` (
   `admin_id` int(11) NOT NULL,
   `fullname` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL
+  `password` varchar(255) NOT NULL,
+  `profile_picture` varchar(255) DEFAULT NULL,
+  `last_login` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` enum('active','inactive') DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `admin`
 --
 
-INSERT INTO `admin` (`admin_id`, `fullname`, `email`, `password`) VALUES
-(1, 'student-portal', 'studentportal@gmail.com', 'e0da2182b62b121fd1e27906138fee2e17645b40');
+INSERT INTO `admin` (`admin_id`, `fullname`, `email`, `password`, `profile_picture`, `last_login`, `created_at`, `updated_at`, `status`) VALUES
+(1, 'student-portal', 'studentportal@gmail.com', 'e0da2182b62b121fd1e27906138fee2e17645b40', NULL, NULL, '2025-09-10 06:54:01', '2025-09-10 09:29:07', 'active'),
+(3, 'mbaruk', 'mbarukhemedy50@gmail.com', '3b03e19ae8e15690d7d34a189190f08dfcbc75e2', '68c3cfb4210e9.png', NULL, '2025-09-10 09:52:54', '2025-09-12 08:10:47', 'active');
 
 -- --------------------------------------------------------
 
@@ -137,15 +143,17 @@ CREATE TABLE `first_year_sem1_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `first_year_sem1_documents`
 --
 
-INSERT INTO `first_year_sem1_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`) VALUES
-(1, 1, 'cover_pages', 'DATABASE ESSENTIAL', '', 'uploads/documents/68b04e5a029d4_1756384858.docx', 'KILOSA DISTRICT HOSPITAL.docx', 12165, 'docx', 'bachelor', '2025-08-28 12:40:58', 0);
+INSERT INTO `first_year_sem1_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`, `download_count`) VALUES
+(1, 1, 'cover_pages', 'DATABASE ESSENTIAL', '', 'uploads/documents/68b04e5a029d4_1756384858.docx', 'KILOSA DISTRICT HOSPITAL.docx', 12165, 'docx', 'bachelor', '2025-08-28 12:40:58', 0, 0),
+(2, 1, 'lecture_notes', 'Accountancy', '', 'uploads/documents/68be7f87b849c_1757314951.pdf', 'TIMETABLE.pdf', 461161, 'pdf', 'diploma2', '2025-09-08 07:02:31', 0, 0);
 
 -- --------------------------------------------------------
 
@@ -165,8 +173,16 @@ CREATE TABLE `first_year_sem2_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `first_year_sem2_documents`
+--
+
+INSERT INTO `first_year_sem2_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`, `download_count`) VALUES
+(1, 1, 'lecture_notes', 'Accountancy', '', 'uploads/documents/68be7f1912733_1757314841.pdf', 'GROUPS 2.pdf', 213790, 'pdf', 'certificate', '2025-09-08 07:00:41', 0, 1);
 
 -- --------------------------------------------------------
 
@@ -186,7 +202,8 @@ CREATE TABLE `fourth_year_sem1_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -207,7 +224,8 @@ CREATE TABLE `fourth_year_sem2_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -237,37 +255,12 @@ CREATE TABLE `print_jobs` (
 INSERT INTO `print_jobs` (`job_id`, `user_name`, `phone_number`, `stationery_id`, `content`, `file_path`, `copies`, `print_type`, `special_instructions`, `status`, `created_at`) VALUES
 (5, 'mbarouk hemed', '0627841861', 5, NULL, 'uploads/68a3047ae0292_SeifiPlastics_Website_Proposal.doc', 1, 'black', '', 'completed', '2025-08-18 10:46:18'),
 (6, 'mbarouk hemed', '0627841861', 5, NULL, 'uploads/68a3049a6d0d1_m_boy report.pdf', 1, 'black', '', 'pending', '2025-08-18 10:46:50'),
-(7, 'bee', '+255716501250', 1, NULL, 'uploads/68a304b6b4d99_GROUPS 2.pdf', 1, 'black', '', 'pending', '2025-08-18 10:47:18');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `print_submissions`
---
-
-CREATE TABLE `print_submissions` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `document_name` varchar(255) NOT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `submission_date` datetime DEFAULT current_timestamp(),
-  `status` varchar(50) DEFAULT 'pending',
-  `name` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `station` varchar(100) DEFAULT NULL,
-  `copies` int(11) DEFAULT NULL,
-  `color` varchar(50) DEFAULT NULL,
-  `notes` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `print_submissions`
---
-
-INSERT INTO `print_submissions` (`id`, `user_id`, `document_name`, `file_path`, `submission_date`, `status`, `name`, `phone`, `station`, `copies`, `color`, `notes`) VALUES
-(1, NULL, 'SeifiPlastics_Website_Proposal.doc', '/var/www/html/students-portal/stationary/uploads/20250731190717_SeifiPlastics_Website_Proposal.doc', '2025-07-31 22:07:17', 'pending', 'mbarouk hemed', '0627841861', 'station1', 1, 'color', ''),
-(2, NULL, 'SeifiPlastics_Website_Proposal.doc', '/var/www/html/students-portal/stationary/uploads/20250731190923_SeifiPlastics_Website_Proposal.doc', '2025-07-31 22:09:23', 'pending', 'mbarouk hemed', '0627841861', 'station1', 1, 'color', ''),
-(3, 1, 'SeifiPlastics_Website_Proposal.doc', '/var/www/html/students-portal/stationary/uploads/20250731191359_SeifiPlastics_Website_Proposal.doc', '2025-08-04 12:32:04', 'completed', 'mbaruk', '0627841861', 'station1', 1, 'black', '');
+(7, 'bee', '+255716501250', 1, NULL, 'uploads/68a304b6b4d99_GROUPS 2.pdf', 1, 'black', '', 'pending', '2025-08-18 10:47:18'),
+(8, 'xhidy', '0627841861', 1, NULL, 'uploads/68c2ac19d3b86_XHIDY.pdf', 1, 'color', 'please edit', 'completed', '2025-09-11 11:01:45'),
+(9, 'mwajuma', '+255716501250', 5, '', 'typed_1757590941_1205.doc', 1, 'black', 'dfghjk', 'pending', '2025-09-11 11:42:21'),
+(10, 'mwajuma', '+255716501250', 5, '', 'uploads/typed_1757591186_1142.doc', 1, 'black', 'dfghjk', 'cancelled', '2025-09-11 11:46:26'),
+(11, 'zuhura', '0987654321', 5, NULL, 'uploads/68c2b6e2ad4c4_cover_page (6).pdf', 1, 'black', 'o', 'pending', '2025-09-11 11:47:46'),
+(12, 'mbarouk hemed', '+255716501250', 5, '', 'uploads/typed_1757592427_1392.doc', 1, 'black', '', 'pending', '2025-09-11 12:07:07');
 
 -- --------------------------------------------------------
 
@@ -287,7 +280,8 @@ CREATE TABLE `second_year_sem1_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -308,7 +302,8 @@ CREATE TABLE `second_year_sem2_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -346,6 +341,20 @@ INSERT INTO `stationery` (`stationery_id`, `name`, `location`, `address`, `phone
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `setting_id` int(11) NOT NULL,
+  `setting_category` varchar(50) NOT NULL,
+  `setting_name` varchar(100) NOT NULL,
+  `setting_value` text DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `third_year_sem1_documents`
 --
 
@@ -361,7 +370,8 @@ CREATE TABLE `third_year_sem1_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -382,7 +392,8 @@ CREATE TABLE `third_year_sem2_documents` (
   `file_type` varchar(20) NOT NULL,
   `level` varchar(20) NOT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -399,16 +410,23 @@ CREATE TABLE `users` (
   `password` varchar(255) NOT NULL,
   `program` varchar(20) NOT NULL,
   `year` varchar(10) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp()
+  `profile_picture` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `email_notifications` tinyint(1) DEFAULT 1,
+  `course_updates` tinyint(1) DEFAULT 1,
+  `assignment_alerts` tinyint(1) DEFAULT 1,
+  `newsletter` tinyint(1) DEFAULT 1,
+  `profile_visibility` tinyint(1) DEFAULT 1,
+  `show_email` tinyint(1) DEFAULT 0,
+  `data_collection` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program`, `year`, `created_at`) VALUES
-(1, 'mbaruk', 'mbarukhemedy50@gmail.com', '03.2481.01.01.2023', '14ee1fd936792f7de947af879df34e216484bc9d', 'BIT', '2', '2025-05-30 17:02:48'),
-(2, 'cbe', 'cbe@gmail.com', '03.0001.01.01.2023', '12d58bfadd6a377ef2d2c83c67f027764440cd01', 'BMES', '2', '2025-08-07 07:47:07');
+INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program`, `year`, `profile_picture`, `created_at`, `email_notifications`, `course_updates`, `assignment_alerts`, `newsletter`, `profile_visibility`, `show_email`, `data_collection`) VALUES
+(1, 'mbaruku', 'mbarukhemedy50@gmail.com', '03.2481.01.01.2023', '6feedd98b28e276cb59045d067aaddd1a31f5b8c', '', '3', 'uploads/profile_pictures/profile_1_1757671765.png', '2025-05-30 17:02:48', 1, 1, 1, 1, 1, 0, 1);
 
 --
 -- Indexes for dumped tables
@@ -418,7 +436,8 @@ INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program
 -- Indexes for table `admin`
 --
 ALTER TABLE `admin`
-  ADD PRIMARY KEY (`admin_id`);
+  ADD PRIMARY KEY (`admin_id`),
+  ADD UNIQUE KEY `unique_email` (`email`);
 
 --
 -- Indexes for table `courses`
@@ -477,12 +496,6 @@ ALTER TABLE `print_jobs`
   ADD KEY `stationery_id` (`stationery_id`);
 
 --
--- Indexes for table `print_submissions`
---
-ALTER TABLE `print_submissions`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Indexes for table `second_year_sem1_documents`
 --
 ALTER TABLE `second_year_sem1_documents`
@@ -501,6 +514,13 @@ ALTER TABLE `second_year_sem2_documents`
 --
 ALTER TABLE `stationery`
   ADD PRIMARY KEY (`stationery_id`);
+
+--
+-- Indexes for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`setting_id`),
+  ADD UNIQUE KEY `category_name` (`setting_category`,`setting_name`);
 
 --
 -- Indexes for table `third_year_sem1_documents`
@@ -532,7 +552,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `admin`
 --
 ALTER TABLE `admin`
-  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `courses`
@@ -556,13 +576,13 @@ ALTER TABLE `documents`
 -- AUTO_INCREMENT for table `first_year_sem1_documents`
 --
 ALTER TABLE `first_year_sem1_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `first_year_sem2_documents`
 --
 ALTER TABLE `first_year_sem2_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `fourth_year_sem1_documents`
@@ -580,13 +600,7 @@ ALTER TABLE `fourth_year_sem2_documents`
 -- AUTO_INCREMENT for table `print_jobs`
 --
 ALTER TABLE `print_jobs`
-  MODIFY `job_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- AUTO_INCREMENT for table `print_submissions`
---
-ALTER TABLE `print_submissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `job_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `second_year_sem1_documents`
@@ -605,6 +619,12 @@ ALTER TABLE `second_year_sem2_documents`
 --
 ALTER TABLE `stationery`
   MODIFY `stationery_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `third_year_sem1_documents`
