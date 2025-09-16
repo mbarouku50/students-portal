@@ -1,5 +1,7 @@
 <?php
+session_name('user_session');
 session_start();
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -26,12 +26,11 @@ $all_documents = [];
 $semester_tables = [];
 
 // Generate all possible semester table names
-$years = ['first', 'second', 'third', 'fourth'];
+$levels = ['certificate', 'diploma1', 'diploma2', 'bachelor1', 'bachelor2', 'bachelor3'];
 $semesters = ['1', '2'];
-
-foreach ($years as $year_val) {
-    foreach ($semesters as $semester_val) {
-        $table_name = $year_val . '_year_sem' . $semester_val . '_documents';
+foreach ($semesters as $semester_val) {
+    foreach ($levels as $level_val) {
+        $table_name = 'sem' . $semester_val . '_' . $level_val . '_documents';
         $semester_tables[] = $table_name;
     }
 }
@@ -56,11 +55,11 @@ foreach ($semester_tables as $table) {
             
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    // Extract year and semester from table name
-                    preg_match('/(.+)_year_sem(\d)/', $table, $matches);
+                    // Extract semester and level from table name (new format)
+                    preg_match('/sem(\d)_(\w+)_documents/', $table, $matches);
                     if (count($matches) === 3) {
-                        $row['year'] = $matches[1];
-                        $row['semester'] = $matches[2];
+                        $row['semester'] = $matches[1];
+                        $row['level'] = $matches[2];
                     }
                     $all_documents[] = $row;
                 }

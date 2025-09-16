@@ -190,7 +190,7 @@
                     <div class="social-links">
                         <a href="#"><i class="fab fa-facebook-f"></i></a>
                         <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.instagram.com/m_boy50/#"><i class="fab fa-instagram"></i></a>
                         <a href="#"><i class="fab fa-linkedin-in"></i></a>
                     </div>
                 </div>
@@ -198,9 +198,8 @@
                 <div class="footer-col">
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
-                        <li><a href="#">Home</a></li>
-                        <li><a href="#">Documents</a></li>
-                        <li><a href="#">Categories</a></li>
+                        <li><a href="index.php">Home</a></li>
+                        <li><a href="documents.php">Documents</a></li>
                         <li><a href="#">Upload</a></li>
                         <li><a href="#">Contact Us</a></li>
                     </ul>
@@ -221,7 +220,7 @@
                     <h4>Contact Info</h4>
                     <ul class="contact-info">
                         <li><i class="fas fa-map-marker-alt"></i> College of Business Education, Dar es Salaam, Tanzania</li>
-                        <li><i class="fas fa-phone"></i> +255 123 456 789</li>
+                        <li><i class="fas fa-phone"></i> +255 716 501 250</li>
                         <li><i class="fas fa-envelope"></i> info@cbedocs.ac.tz</li>
                     </ul>
                 </div>

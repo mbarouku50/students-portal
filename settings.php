@@ -1,5 +1,7 @@
 <?php
+session_name('user_session');
 session_start();
+
 include("connection.php");
 
 // Check if user is logged in

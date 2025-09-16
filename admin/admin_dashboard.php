@@ -4,6 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Start session before any output
+session_name('admin_session');
 session_start();
 
 include("../connection.php");
@@ -29,16 +30,15 @@ $courses_count = $conn->query("SELECT COUNT(*) as total FROM courses")->fetch_as
 $stationery_count = $conn->query("SELECT COUNT(*) as total FROM stationery")->fetch_assoc()['total'];
 
 // Count all documents from all tables
-$document_tables = [
-    'first_year_sem1_documents', 
-    'first_year_sem2_documents',
-    'second_year_sem1_documents', 
-    'second_year_sem2_documents',
-    'third_year_sem1_documents', 
-    'third_year_sem2_documents',
-    'fourth_year_sem1_documents', 
-    'fourth_year_sem2_documents'
-];
+
+$document_tables = [];
+$levels = ['certificate', 'diploma1', 'diploma2', 'bachelor1', 'bachelor2', 'bachelor3'];
+$semesters = ['1', '2'];
+foreach ($semesters as $semester_val) {
+    foreach ($levels as $level_val) {
+        $document_tables[] = 'sem' . $semester_val . '_' . $level_val . '_documents';
+    }
+}
 
 $documents_count = 0;
 foreach ($document_tables as $table) {

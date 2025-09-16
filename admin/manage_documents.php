@@ -1,4 +1,6 @@
 <?php
+session_name('admin_session');
+session_start();
 include("../connection.php");
 include("sidebar.php");
 
@@ -6,8 +8,8 @@ include("sidebar.php");
 // Get document type from URL if specified
 $doc_type = isset($_GET['type']) ? $_GET['type'] : '';
 $course_id = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
-$year = isset($_GET['year']) ? $_GET['year'] : '';
 $semester = isset($_GET['semester']) ? $_GET['semester'] : '';
+$level = isset($_GET['level']) ? $_GET['level'] : '';
 
 // Valid document types
 $valid_types = [
@@ -44,17 +46,14 @@ if ($course_id > 0) {
     $query_params[] = $course_id;
 }
 
-// Get documents from all semester tables
+// Get documents from all semester/level tables
 $all_documents = [];
 $semester_tables = [];
-
-// Generate all possible semester table names
-$years = ['first', 'second', 'third', 'fourth'];
+$levels = ['certificate', 'diploma1', 'diploma2', 'bachelor1', 'bachelor2', 'bachelor3'];
 $semesters = ['1', '2'];
-
-foreach ($years as $year_val) {
-    foreach ($semesters as $semester_val) {
-        $table_name = $year_val . '_year_sem' . $semester_val . '_documents';
+foreach ($semesters as $semester_val) {
+    foreach ($levels as $level_val) {
+        $table_name = 'sem' . $semester_val . '_' . $level_val . '_documents';
         $semester_tables[] = $table_name;
     }
 }
@@ -65,35 +64,36 @@ foreach ($semester_tables as $table) {
     $table_check = $conn->query("SHOW TABLES LIKE '$table'");
     if ($table_check->num_rows > 0) {
         // Build query for this table
-        $query = "SELECT d.*, '$table' as source_table, 
-                 c.course_code, c.course_name 
-                 FROM $table d 
-                 LEFT JOIN courses c ON d.course_id = c.course_id";
-        
-        if (!empty($where_conditions)) {
-            $query .= " WHERE " . implode(" AND ", $where_conditions);
+        $query = "SELECT d.*, '$table' as source_table, c.course_code, c.course_name FROM $table d LEFT JOIN courses c ON d.course_id = c.course_id";
+        $table_where = $where_conditions;
+        $table_params = $query_params;
+        if (!empty($semester)) {
+            $table_where[] = "d.semester = ?";
+            $table_params[] = $semester;
         }
-        
+        if (!empty($level)) {
+            $table_where[] = "d.level = ?";
+            $table_params[] = $level;
+        }
+        if (!empty($table_where)) {
+            $query .= " WHERE " . implode(" AND ", $table_where);
+        }
         $query .= " ORDER BY d.uploaded_at DESC";
-        
-        // Prepare and execute query
         $stmt = $conn->prepare($query);
         if ($stmt) {
-            if (!empty($query_params)) {
-                $types = str_repeat('s', count($query_params));
-                $stmt->bind_param($types, ...$query_params);
+            if (!empty($table_params)) {
+                $types = str_repeat('s', count($table_params));
+                $stmt->bind_param($types, ...$table_params);
             }
-            
             $stmt->execute();
             $result = $stmt->get_result();
-            
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    // Extract year and semester from table name
-                    preg_match('/(.+)_year_sem(\d)/', $table, $matches);
+                    // Extract semester and level from table name
+                    preg_match('/sem(\d)_(\w+)_documents/', $table, $matches);
                     if (count($matches) === 3) {
-                        $row['year'] = $matches[1];
-                        $row['semester'] = $matches[2];
+                        $row['semester'] = $matches[1];
+                        $row['level'] = $matches[2];
                     }
                     $all_documents[] = $row;
                 }
@@ -627,13 +627,23 @@ if (isset($_POST['delete_document'])) {
                     </div>
                     
                     <div class="filter-group">
-                        <label class="filter-label">Year</label>
-                        <select name="year" class .filter-select">
-                            <option value="">All Years</option>
-                            <option value="first" <?php echo $year === 'first' ? 'selected' : ''; ?>>First Year</option>
-                            <option value="second" <?php echo $year === 'second' ? 'selected' : ''; ?>>Second Year</option>
-                            <option value="third" <?php echo $year === 'third' ? 'selected' : ''; ?>>Third Year</option>
-                            <option value="fourth" <?php echo $year === 'fourth' ? 'selected' : ''; ?>>Fourth Year</option>
+                        <label class="filter-label">Semester</label>
+                        <select name="semester" class="filter-select">
+                            <option value="">All Semesters</option>
+                            <option value="1" <?php echo $semester === '1' ? 'selected' : ''; ?>>Semester 1</option>
+                            <option value="2" <?php echo $semester === '2' ? 'selected' : ''; ?>>Semester 2</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Level</label>
+                        <select name="level" class="filter-select">
+                            <option value="">All Levels</option>
+                            <option value="certificate" <?php echo $level === 'certificate' ? 'selected' : ''; ?>>Certificate</option>
+                            <option value="diploma1" <?php echo $level === 'diploma1' ? 'selected' : ''; ?>>Diploma 1</option>
+                            <option value="diploma2" <?php echo $level === 'diploma2' ? 'selected' : ''; ?>>Diploma 2</option>
+                            <option value="bachelor1" <?php echo $level === 'bachelor1' ? 'selected' : ''; ?>>Bachelor 1</option>
+                            <option value="bachelor2" <?php echo $level === 'bachelor2' ? 'selected' : ''; ?>>Bachelor 2</option>
+                            <option value="bachelor3" <?php echo $level === 'bachelor3' ? 'selected' : ''; ?>>Bachelor 3</option>
                         </select>
                     </div>
                     
@@ -682,10 +692,6 @@ if (isset($_POST['delete_document'])) {
                         
                         <div class="card-body">
                             <div class="doc-meta">
-                                <div class="meta-item">
-                                    <span class="meta-label">Year</span>
-                                    <span class="meta-value"><?php echo ucfirst($document['year']); ?> Year</span>
-                                </div>
                                 <div class="meta-item">
                                     <span class="meta-label">Semester</span>
                                     <span class="meta-value">Semester <?php echo $document['semester']; ?></span>

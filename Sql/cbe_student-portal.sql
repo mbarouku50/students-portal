@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Sep 12, 2025 at 12:41 PM
+-- Generation Time: Sep 15, 2025 at 12:44 PM
 -- Server version: 10.11.13-MariaDB-0+deb12u1
 -- PHP Version: 8.2.29
 
@@ -46,6 +46,53 @@ CREATE TABLE `admin` (
 INSERT INTO `admin` (`admin_id`, `fullname`, `email`, `password`, `profile_picture`, `last_login`, `created_at`, `updated_at`, `status`) VALUES
 (1, 'student-portal', 'studentportal@gmail.com', 'e0da2182b62b121fd1e27906138fee2e17645b40', NULL, NULL, '2025-09-10 06:54:01', '2025-09-10 09:29:07', 'active'),
 (3, 'mbaruk', 'mbarukhemedy50@gmail.com', '3b03e19ae8e15690d7d34a189190f08dfcbc75e2', '68c3cfb4210e9.png', NULL, '2025-09-10 09:52:54', '2025-09-12 08:10:47', 'active');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `conversations`
+--
+
+CREATE TABLE `conversations` (
+  `conversation_id` int(11) NOT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `is_group` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `conversations`
+--
+
+INSERT INTO `conversations` (`conversation_id`, `title`, `is_group`, `created_at`) VALUES
+(5, 'bahati issa msuya', 0, '2025-09-15 15:00:51'),
+(6, 'BIT groups', 0, '2025-09-15 15:16:52'),
+(7, 'BIT groups', 0, '2025-09-15 15:16:58');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `conversation_participants`
+--
+
+CREATE TABLE `conversation_participants` (
+  `id` int(11) NOT NULL,
+  `conversation_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `joined_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `conversation_participants`
+--
+
+INSERT INTO `conversation_participants` (`id`, `conversation_id`, `user_id`, `joined_at`) VALUES
+(9, 5, 1, '2025-09-15 15:00:51'),
+(10, 5, 3, '2025-09-15 15:00:52'),
+(11, 6, 3, '2025-09-15 15:16:52'),
+(12, 6, 1, '2025-09-15 15:16:53'),
+(13, 7, 3, '2025-09-15 15:16:58'),
+(14, 7, 1, '2025-09-15 15:16:58');
 
 -- --------------------------------------------------------
 
@@ -231,6 +278,30 @@ CREATE TABLE `fourth_year_sem2_documents` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `messages`
+--
+
+CREATE TABLE `messages` (
+  `id` int(11) NOT NULL,
+  `conversation_id` int(11) DEFAULT NULL,
+  `sender_id` int(11) DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `attachment` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `is_read` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `messages`
+--
+
+INSERT INTO `messages` (`id`, `conversation_id`, `sender_id`, `message`, `attachment`, `created_at`, `is_read`) VALUES
+(23, 5, 1, 'HI', NULL, '2025-09-15 15:01:55', 1),
+(24, 5, 3, 'SHOBO', NULL, '2025-09-15 15:02:41', 1);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `print_jobs`
 --
 
@@ -411,6 +482,7 @@ CREATE TABLE `users` (
   `program` varchar(20) NOT NULL,
   `year` varchar(10) NOT NULL,
   `profile_picture` varchar(255) DEFAULT NULL,
+  `last_seen` datetime DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `email_notifications` tinyint(1) DEFAULT 1,
   `course_updates` tinyint(1) DEFAULT 1,
@@ -425,8 +497,9 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program`, `year`, `profile_picture`, `created_at`, `email_notifications`, `course_updates`, `assignment_alerts`, `newsletter`, `profile_visibility`, `show_email`, `data_collection`) VALUES
-(1, 'mbaruku', 'mbarukhemedy50@gmail.com', '03.2481.01.01.2023', '6feedd98b28e276cb59045d067aaddd1a31f5b8c', '', '3', 'uploads/profile_pictures/profile_1_1757671765.png', '2025-05-30 17:02:48', 1, 1, 1, 1, 1, 0, 1);
+INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program`, `year`, `profile_picture`, `last_seen`, `created_at`, `email_notifications`, `course_updates`, `assignment_alerts`, `newsletter`, `profile_visibility`, `show_email`, `data_collection`) VALUES
+(1, 'mbaruku', 'mbarukhemedy50@gmail.com', '03.2481.01.01.2023', '6feedd98b28e276cb59045d067aaddd1a31f5b8c', '', '3', 'uploads/profile_pictures/profile_1_1757671765.png', '2025-09-15 15:40:46', '2025-05-30 17:02:48', 1, 1, 1, 1, 1, 0, 1),
+(3, 'bahati issa msuya', 'bahati@gmail.com', '03.1434.01.01.2023', 'b1734567c261fa3bb2628ac4883b0a587cf76161', 'IT', '2', 'uploads/profile_pictures/profile_3_1757928469.png', '2025-09-15 15:02:34', '2025-09-15 09:27:06', 1, 1, 1, 1, 1, 0, 1);
 
 --
 -- Indexes for dumped tables
@@ -438,6 +511,19 @@ INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program
 ALTER TABLE `admin`
   ADD PRIMARY KEY (`admin_id`),
   ADD UNIQUE KEY `unique_email` (`email`);
+
+--
+-- Indexes for table `conversations`
+--
+ALTER TABLE `conversations`
+  ADD PRIMARY KEY (`conversation_id`);
+
+--
+-- Indexes for table `conversation_participants`
+--
+ALTER TABLE `conversation_participants`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `conversation_id` (`conversation_id`);
 
 --
 -- Indexes for table `courses`
@@ -487,6 +573,13 @@ ALTER TABLE `fourth_year_sem1_documents`
 ALTER TABLE `fourth_year_sem2_documents`
   ADD PRIMARY KEY (`doc_id`),
   ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `messages`
+--
+ALTER TABLE `messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `conversation_id` (`conversation_id`);
 
 --
 -- Indexes for table `print_jobs`
@@ -555,6 +648,18 @@ ALTER TABLE `admin`
   MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `conversations`
+--
+ALTER TABLE `conversations`
+  MODIFY `conversation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `conversation_participants`
+--
+ALTER TABLE `conversation_participants`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
 -- AUTO_INCREMENT for table `courses`
 --
 ALTER TABLE `courses`
@@ -595,6 +700,12 @@ ALTER TABLE `fourth_year_sem1_documents`
 --
 ALTER TABLE `fourth_year_sem2_documents`
   MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `messages`
+--
+ALTER TABLE `messages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `print_jobs`
@@ -642,11 +753,17 @@ ALTER TABLE `third_year_sem2_documents`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `conversation_participants`
+--
+ALTER TABLE `conversation_participants`
+  ADD CONSTRAINT `conversation_participants_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `coverpage_documents`
@@ -683,6 +800,12 @@ ALTER TABLE `fourth_year_sem1_documents`
 --
 ALTER TABLE `fourth_year_sem2_documents`
   ADD CONSTRAINT `fourth_year_sem2_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
+
+--
+-- Constraints for table `messages`
+--
+ALTER TABLE `messages`
+  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `print_jobs`

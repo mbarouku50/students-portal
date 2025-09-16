@@ -1,4 +1,8 @@
+
 <?php
+// IMPORTANT: Do not add any whitespace or blank lines before this PHP block or after the closing tag below.
+// This prevents 'headers already sent' errors.
+session_name('user_session');
 session_start();
 // Sample user data - you'll replace this with your actual user data
 if (isset($_SESSION['user_id']) && !isset($_SESSION['user_fullname'])) {

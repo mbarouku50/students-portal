@@ -1,5 +1,6 @@
 <?php
-
+session_name('admin_session');
+session_start();
 include("../connection.php");
 
 // Handle form submission

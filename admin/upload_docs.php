@@ -37,7 +37,6 @@ $success = $error = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['document'])) {
     $title = $conn->real_escape_string($_POST['document_title']);
     $description = $conn->real_escape_string($_POST['description']);
-    $year = $conn->real_escape_string($_POST['year']);
     $semester = $conn->real_escape_string($_POST['semester']);
     $level = $conn->real_escape_string($_POST['level']);
     $uploaded_by = $_SESSION['user_id'] ?? 0;
@@ -54,10 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['document'])) {
     
     // Check if directory is writable
     if (file_exists($target_dir) && is_writable($target_dir)) {
-        $file_name = basename($_FILES["document"]["name"]);
-        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-        $new_file_name = uniqid() . '_' . time() . '.' . $file_ext;
-        $target_file = $target_dir . $new_file_name;
+    $file_name = basename($_FILES["document"]["name"]);
+    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+    $new_file_name = uniqid() . '_' . time() . '.' . $file_ext;
+    $target_file = $target_dir . $new_file_name;
         
         // Validate file
         $allowed_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt'];
@@ -70,15 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['document'])) {
         } else {
             // Check for upload errors
             if ($_FILES["document"]["error"] !== UPLOAD_ERR_OK) {
-                $error = "Upload error: " . $this->getUploadError($_FILES["document"]["error"]);
+                $error = "Upload error: " . getUploadError($_FILES["document"]["error"]);
             } elseif (move_uploaded_file($_FILES["document"]["tmp_name"], $target_file)) {
-                // Determine the correct table based on year and semester
-                $table_name = strtolower($year) . '_year_sem' . $semester . '_documents';
-                
+                // Determine the correct table based on semester and level
+                $table_name = 'sem' . $semester . '_' . strtolower($level) . '_documents';
                 // Check if table exists
                 $table_check = $conn->query("SHOW TABLES LIKE '$table_name'");
                 if ($table_check->num_rows == 0) {
-                    $error = "Invalid year/semester combination. Table '$table_name' does not exist.";
+                    $error = "Invalid semester/level combination. Table '$table_name' does not exist.";
                     // Clean up uploaded file
                     if (file_exists($target_file)) {
                         unlink($target_file);
@@ -86,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['document'])) {
                 } else {
                     // Insert into the correct table
                     $relative_file_path = "uploads/documents/" . $new_file_name;
-                    
                     $sql = "INSERT INTO $table_name (
                         course_id, 
                         doc_type, 
@@ -110,9 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['document'])) {
                         '$level',
                         '$uploaded_by'
                     )";
-                    
                     if ($conn->query($sql)) {
-                        $success = "Document uploaded successfully to $year Year Semester $semester!";
+                        $success = "Document uploaded successfully to Semester $semester, Level $level!";
                         // Clear form
                         $_POST['document_title'] = $_POST['description'] = '';
                     } else {
@@ -388,7 +384,7 @@ function getUploadError($error_code) {
                 <div class="upload-target" id="uploadTarget">
                     <i class="fas fa-folder-open"></i> 
                     Selected Target: 
-                    <span id="targetText">Please select year and semester</span>
+                    <span id="targetText">Please select semester and level</span>
                 </div>
                 
                 <div class="form-group">
@@ -403,16 +399,6 @@ function getUploadError($error_code) {
                 </div>
                 
                 <div class="form-row">
-                    <div class="form-col">
-                        <label for="year">Year *</label>
-                        <select id="year" name="year" class="form-control" required onchange="updateTarget()">
-                            <option value="">Select Year</option>
-                            <option value="first" <?php echo ($_POST['year'] ?? '') == 'first' ? 'selected' : ''; ?>>First Year</option>
-                            <option value="second" <?php echo ($_POST['year'] ?? '') == 'second' ? 'selected' : ''; ?>>Second Year</option>
-                            <option value="third" <?php echo ($_POST['year'] ?? '') == 'third' ? 'selected' : ''; ?>>Third Year</option>
-                            <option value="fourth" <?php echo ($_POST['year'] ?? '') == 'fourth' ? 'selected' : ''; ?>>Fourth Year</option>
-                        </select>
-                    </div>
                     
                     <div class="form-col">
                         <label for="semester">Semester *</label>
@@ -422,15 +408,16 @@ function getUploadError($error_code) {
                             <option value="2" <?php echo ($_POST['semester'] ?? '') == '2' ? 'selected' : ''; ?>>Semester 2</option>
                         </select>
                     </div>
-                    
                     <div class="form-col">
                         <label for="level">Level *</label>
-                        <select id="level" name="level" class="form-control" required>
+                        <select id="level" name="level" class="form-control" required onchange="updateTarget()">
                             <option value="">Select Level</option>
                             <option value="certificate" <?php echo ($_POST['level'] ?? '') == 'certificate' ? 'selected' : ''; ?>>Certificate</option>
                             <option value="diploma1" <?php echo ($_POST['level'] ?? '') == 'diploma1' ? 'selected' : ''; ?>>Diploma 1</option>
                             <option value="diploma2" <?php echo ($_POST['level'] ?? '') == 'diploma2' ? 'selected' : ''; ?>>Diploma 2</option>
-                            <option value="bachelor" <?php echo ($_POST['level'] ?? '') == 'bachelor' ? 'selected' : ''; ?>>Bachelor</option>
+                            <option value="bachelor1" <?php echo ($_POST['level'] ?? '') == 'bachelor1' ? 'selected' : ''; ?>>Bachelor 1</option>
+                            <option value="bachelor2" <?php echo ($_POST['level'] ?? '') == 'bachelor2' ? 'selected' : ''; ?>>Bachelor 2</option>
+                            <option value="bachelor3" <?php echo ($_POST['level'] ?? '') == 'bachelor3' ? 'selected' : ''; ?>>Bachelor 3</option>
                         </select>
                     </div>
                 </div>
@@ -490,24 +477,15 @@ function getUploadError($error_code) {
 
         // Update upload target display
         function updateTarget() {
-            const yearSelect = document.getElementById('year');
             const semesterSelect = document.getElementById('semester');
+            const levelSelect = document.getElementById('level');
             const targetText = document.getElementById('targetText');
-            
-            if (yearSelect.value && semesterSelect.value) {
-                const yearMap = {
-                    'first': 'First',
-                    'second': 'Second',
-                    'third': 'Third',
-                    'fourth': 'Fourth'
-                };
-                
-                targetText.textContent = `${yearMap[yearSelect.value]} Year - Semester ${semesterSelect.value}`;
+            if (semesterSelect.value && levelSelect.value) {
+                targetText.textContent = `Semester ${semesterSelect.value} - Level ${levelSelect.value}`;
             } else {
-                targetText.textContent = 'Please select year and semester';
+                targetText.textContent = 'Please select semester and level';
             }
         }
-        
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateTarget();

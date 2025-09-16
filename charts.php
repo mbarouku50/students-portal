@@ -1,254 +1,488 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+session_name('user_session');
+session_start();
+
 // charts.php
+require_once 'connection.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
 include("temperate/header.php");
 
-// Sample data for demonstration - you'll replace this with actual data from your database
-$conversations = [
-    [
-        'id' => 1,
-        'name' => 'Mathematics Study Group',
-        'last_message' => 'John: Did anyone solve problem 5?',
-        'time' => '2:45 PM',
-        'unread' => 3,
-        'online' => true,
-        'participants' => 5,
-        'is_group' => true
-    ],
-    [
-        'id' => 2,
-        'name' => 'Dr. Johnson',
-        'last_message' => 'Please submit your assignments by Friday',
-        'time' => 'Yesterday',
-        'unread' => 0,
-        'online' => false,
-        'is_group' => false
-    ],
-    [
-        'id' => 3,
-        'name' => 'Computer Science Club',
-        'last_message' => 'Sarah: Meeting postponed to next week',
-        'time' => '12/10/2023',
-        'unread' => 12,
-        'online' => true,
-        'participants' => 15,
-        'is_group' => true
-    ],
-    [
-        'id' => 4,
-        'name' => 'Alex Morgan',
-        'last_message' => 'Are you coming to the library today?',
-        'time' => '12/08/2023',
-        'unread' => 0,
-        'online' => false,
-        'is_group' => false
-    ]
-];
-
-$active_chat = [
-    'id' => 1,
-    'name' => 'Mathematics Study Group',
-    'is_group' => true,
-    'participants' => [
-        ['name' => 'John Doe', 'online' => true],
-        ['name' => 'Sarah Smith', 'online' => true],
-        ['name' => 'Mike Johnson', 'online' => false],
-        ['name' => 'You', 'online' => true],
-        ['name' => 'Emma Wilson', 'online' => true]
-    ]
-];
-
-$messages = [
-    [
-        'id' => 1,
-        'sender' => 'John Doe',
-        'message' => 'Has everyone finished the assignment?',
-        'time' => '2:30 PM',
-        'is_me' => false
-    ],
-    [
-        'id' => 2,
-        'sender' => 'You',
-        'message' => 'I\'m almost done, just question 5 left',
-        'time' => '2:32 PM',
-        'is_me' => true
-    ],
-    [
-        'id' => 3,
-        'sender' => 'Sarah Smith',
-        'message' => 'I found question 5 really challenging. Any tips?',
-        'time' => '2:35 PM',
-        'is_me' => false
-    ],
-    [
-        'id' => 4,
-        'sender' => 'Mike Johnson',
-        'message' => 'I used integration by parts for question 5',
-        'time' => '2:40 PM',
-        'is_me' => false
-    ],
-    [
-        'id' => 5,
-        'sender' => 'You',
-        'message' => 'Thanks Mike! That helped me solve it',
-        'time' => '2:42 PM',
-        'is_me' => true
-    ]
-];
-?>
+$user_id = $_SESSION['user_id'];
+        
+        // Handle conversation creation
+if (isset($_POST['create_conversation'])) {
+    $user_id = $_SESSION['user_id'];
+    $title = mysqli_real_escape_string($conn, trim($_POST['title']));
+    $user_ids = isset($_POST['user_ids']) ? $_POST['user_ids'] : [];
     
+    // Validate inputs
+    if (empty($title)) {
+        $error = "Group title is required";
+    } elseif (empty($user_ids)) {
+        $error = "Please select at least one participant";
+    } else {
+        // Create conversation
+        $is_group = (count($user_ids) > 1) ? 1 : 0;
+        $insert_conversation = "INSERT INTO conversations (title, is_group, created_at) 
+                                VALUES ('$title', $is_group, NOW())";
+        if (mysqli_query($conn, $insert_conversation)) {
+            $conversation_id = mysqli_insert_id($conn);
+            
+            // Add participants
+            $participants = array_merge($user_ids, [$user_id]); // Include current user
+            $participants = array_unique($participants);
+            
+            $success = true;
+            foreach ($participants as $participant_id) {
+                $participant_id = intval($participant_id);
+                $add_participant = "INSERT INTO conversation_participants (conversation_id, user_id) 
+                                    VALUES ($conversation_id, $participant_id)";
+                if (!mysqli_query($conn, $add_participant)) {
+                    $success = false;
+                    break;
+                }
+            }
+            
+            if ($success) {
+                header("Location: charts.php?conversation_id=$conversation_id");
+                exit();
+            } else {
+                $error = "Error adding participants to the conversation";
+            }
+        } else {
+            $error = "Error creating conversation: " . mysqli_error($conn);
+        }
+    }
+    
+    // If there was an error, store it in session to display later
+    if (isset($error)) {
+        $_SESSION['error'] = $error;
+    }
+}
+
+// Handle starting a new individual conversation
+if (isset($_GET['start_chat'])) {
+    $other_user_id = intval($_GET['start_chat']);
+    $user_id = $_SESSION['user_id'];
+    
+    // Check if conversation already exists
+    $check_conversation = "SELECT c.conversation_id 
+                          FROM conversations c
+                          INNER JOIN conversation_participants cp1 ON c.conversation_id = cp1.conversation_id
+                          INNER JOIN conversation_participants cp2 ON c.conversation_id = cp2.conversation_id
+                          WHERE cp1.user_id = $user_id 
+                          AND cp2.user_id = $other_user_id 
+                          AND c.is_group = 0";
+    $result = mysqli_query($conn, $check_conversation);
+    
+    if (mysqli_num_rows($result) > 0) {
+        // Conversation exists, redirect to it
+        $conversation = mysqli_fetch_assoc($result);
+        header("Location: charts.php?conversation_id=" . $conversation['conversation_id']);
+        exit();
+    } else {
+        // Create new conversation
+        $other_user_query = "SELECT fullname FROM users WHERE user_id = $other_user_id";
+        $other_user_result = mysqli_query($conn, $other_user_query);
+        $other_user = mysqli_fetch_assoc($other_user_result);
+        $title = $other_user['fullname'];
+        
+        $insert_conversation = "INSERT INTO conversations (title, is_group, created_at) 
+                                VALUES ('$title', 0, NOW())";
+        mysqli_query($conn, $insert_conversation);
+        $conversation_id = mysqli_insert_id($conn);
+        
+        // Add participants
+        $add_participant1 = "INSERT INTO conversation_participants (conversation_id, user_id) 
+                            VALUES ($conversation_id, $user_id)";
+        mysqli_query($conn, $add_participant1);
+        
+        $add_participant2 = "INSERT INTO conversation_participants (conversation_id, user_id) 
+                            VALUES ($conversation_id, $other_user_id)";
+        mysqli_query($conn, $add_participant2);
+        
+        header("Location: charts.php?conversation_id=$conversation_id");
+        exit();
+    }
+}
+
+// Update user's last seen timestamp
+$user_id = $_SESSION['user_id'];
+$update_last_seen = "UPDATE users SET last_seen = NOW() WHERE user_id = $user_id";
+mysqli_query($conn, $update_last_seen);
+
+// Get active conversation ID
+$active_conversation_id = isset($_GET['conversation_id']) ? intval($_GET['conversation_id']) : 0;
+
+// Fetch user's conversations
+// Replace the conversations query with this improved version
+$conversations_query = "SELECT c.*, 
+                        (SELECT message FROM messages WHERE conversation_id = c.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message,
+                        (SELECT created_at FROM messages WHERE conversation_id = c.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+                        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.conversation_id AND is_read = 0 AND sender_id != $user_id) as unread_count
+                        FROM conversations c
+                        INNER JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
+                        WHERE cp.user_id = $user_id
+                        GROUP BY c.conversation_id
+                        ORDER BY last_message_time DESC";
+                        
+$conversations_result = mysqli_query($conn, $conversations_query);
+$conversations = mysqli_fetch_all($conversations_result, MYSQLI_ASSOC);
+
+// Format conversation data
+foreach ($conversations as &$conv) {
+    if ($conv['is_group']) {
+        // For group chats, get participant count
+        $count_query = "SELECT COUNT(*) as participant_count FROM conversation_participants WHERE conversation_id = {$conv['conversation_id']}";
+        $count_result = mysqli_query($conn, $count_query);
+        $count_data = mysqli_fetch_assoc($count_result);
+        $conv['participants'] = $count_data['participant_count'];
+    } else {
+        // For individual chats, get the other participant's name
+        $other_user_query = "SELECT u.user_id, u.fullname, u.profile_picture, u.last_seen 
+                             FROM users u
+                             INNER JOIN conversation_participants cp ON u.user_id = cp.user_id
+                             WHERE cp.conversation_id = {$conv['conversation_id']} AND u.user_id != $user_id
+                             LIMIT 1";
+        $other_user_result = mysqli_query($conn, $other_user_query);
+        $other_user = mysqli_fetch_assoc($other_user_result);
+        
+        if ($other_user) {
+            $conv['name'] = $other_user['fullname'];
+            $conv['profile_picture'] = $other_user['profile_picture'];
+            $conv['last_seen'] = $other_user['last_seen'];
+        }
+    }
+    
+    // Format time
+    if ($conv['last_message_time']) {
+        $timestamp = strtotime($conv['last_message_time']);
+        $now = time();
+        $diff = $now - $timestamp;
+        
+        if ($diff < 60) {
+            $conv['time'] = 'Just now';
+        } elseif ($diff < 3600) {
+            $conv['time'] = floor($diff / 60) . ' min ago';
+        } elseif ($diff < 86400) {
+            $conv['time'] = date('g:i A', $timestamp);
+        } else {
+            $conv['time'] = date('M j', $timestamp);
+        }
+    } else {
+        $conv['time'] = '';
+    }
+}
+
+// Fetch active conversation data if selected
+$active_chat = null;
+$messages = [];
+
+if ($active_conversation_id > 0) {
+    // Verify user is a participant
+    $verify_participant = "SELECT * FROM conversation_participants WHERE conversation_id = $active_conversation_id AND user_id = $user_id";
+    $verify_result = mysqli_query($conn, $verify_participant);
+    
+    if (mysqli_num_rows($verify_result) > 0) {
+        // Get conversation details
+        $conversation_query = "SELECT * FROM conversations WHERE conversation_id = $active_conversation_id";
+        $conversation_result = mysqli_query($conn, $conversation_query);
+        $active_chat = mysqli_fetch_assoc($conversation_result);
+        
+        // Get participants for group chats
+        if ($active_chat['is_group']) {
+            $participants_query = "SELECT u.user_id, u.fullname, u.profile_picture, u.last_seen 
+                                   FROM users u
+                                   INNER JOIN conversation_participants cp ON u.user_id = cp.user_id
+                                   WHERE cp.conversation_id = $active_conversation_id";
+            $participants_result = mysqli_query($conn, $participants_query);
+            $active_chat['participants'] = mysqli_fetch_all($participants_result, MYSQLI_ASSOC);
+        } else {
+            // For individual chats, get the other participant
+            $other_user_query = "SELECT u.user_id, u.fullname, u.profile_picture, u.last_seen 
+                                 FROM users u
+                                 INNER JOIN conversation_participants cp ON u.user_id = cp.user_id
+                                 WHERE cp.conversation_id = $active_conversation_id AND u.user_id != $user_id
+                                 LIMIT 1";
+            $other_user_result = mysqli_query($conn, $other_user_query);
+            $other_user = mysqli_fetch_assoc($other_user_result);
+            
+            if ($other_user) {
+                $active_chat['name'] = $other_user['fullname'];
+                $active_chat['profile_picture'] = $other_user['profile_picture'];
+                $active_chat['last_seen'] = $other_user['last_seen'];
+            }
+        }
+        
+    // Messages are now fetched via AJAX from API/fetch_messages.php
+    // ...existing code...
+    } else {
+        // User is not a participant, redirect to chat list
+        header("Location: charts.php");
+        exit();
+    }
+}
+
+// Fetch other users for new conversation
+$users_query = "SELECT user_id, fullname, profile_picture, last_seen FROM users WHERE user_id != $user_id ORDER BY fullname";
+$users_result = mysqli_query($conn, $users_query);
+$other_users = mysqli_fetch_all($users_result, MYSQLI_ASSOC);
+?>
+
+<!-- show if there any error-->
+<?php if (isset($_SESSION['error'])): ?>
+<div class="error-message" style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #ffebee; color: #c62828; padding: 10px 20px; border-radius: 4px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <?= $_SESSION['error'] ?>
+    <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; color: #c62828; margin-left: 10px; cursor: pointer;">×</button>
+</div>
+<?php unset($_SESSION['error']); ?>
+<?php endif; ?>
+<!--end  show if there any error-->
+
     <div class="chat-container">
         <div class="chat-sidebar">
             <div class="chat-header">
                 <h2>Chats</h2>
                 <div class="chat-actions">
-                    <button class="icon-button" title="New conversation">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="icon-button" title="Settings">
-                        <i class="fas fa-cog"></i>
+                    <button class="icon-button" id="newChatBtn" title="New group conversation">
+                        <i class="fas fa-users"></i>
                     </button>
                 </div>
             </div>
-            
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search messages or users">
+                <input type="text" placeholder="Search messages or users" id="chatSearch">
             </div>
-            
-            <div class="conversations-list">
-                <?php foreach ($conversations as $conv): ?>
-                <div class="conversation-item <?= $conv['id'] == $active_chat['id'] ? 'active' : '' ?>">
-                    <div class="avatar <?= $conv['is_group'] ? 'group' : '' ?> <?= $conv['online'] ? 'online' : '' ?>">
-                        <?php if ($conv['is_group']): ?>
-                            <i class="fas fa-users"></i>
-                        <?php else: ?>
-                            <i class="fas fa-user"></i>
-                        <?php endif; ?>
-                    </div>
-                    <div class="conversation-details">
-                        <div class="conversation-header">
-                            <h3><?= $conv['name'] ?></h3>
-                            <span class="time"><?= $conv['time'] ?></span>
-                        </div>
-                        <div class="conversation-preview">
-                            <p><?= $conv['last_message'] ?></p>
-                            <?php if ($conv['unread'] > 0): ?>
-                                <span class="unread-count"><?= $conv['unread'] ?></span>
+            <div class="sidebar-section">
+                <h4 style="margin:10px 0 5px 15px; color:#65676b;">All Users</h4>
+                <div class="users-list" style="max-height:150px; overflow-y:auto; border-bottom:1px solid #e6e6e6;">
+                    <?php foreach ($other_users as $user): ?>
+                    <a href="charts.php?start_chat=<?= $user['user_id'] ?>" class="user-link" style="display:flex;align-items:center;padding:8px 15px;text-decoration:none;color:inherit;">
+                        <div class="avatar small <?= isUserOnline($user['last_seen']) ? 'online' : '' ?>">
+                            <?php if (!empty($user['profile_picture'])): ?>
+                                <img src="<?= $user['profile_picture'] ?>" alt="<?= $user['fullname'] ?>">
+                            <?php else: ?>
+                                <i class="fas fa-user"></i>
                             <?php endif; ?>
                         </div>
-                    </div>
+                        <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($user['fullname']) ?></span>
+                        <span style="font-size:12px;color:#31a24c; margin-left:8px;">
+                            <?= isUserOnline($user['last_seen']) ? 'Online' : 'Offline' ?>
+                        </span>
+                    </a>
+                    <?php endforeach; ?>
                 </div>
-                <?php endforeach; ?>
+            </div>
+            <div class="sidebar-section">
+                <h4 style="margin:10px 0 5px 15px; color:#65676b;">Your Conversations</h4>
+                <div class="conversations-list">
+                    <?php if (count($conversations) > 0): ?>
+                        <?php foreach ($conversations as $conv): ?>
+                        <a href="charts.php?conversation_id=<?= $conv['conversation_id'] ?>" class="conversation-link">
+                            <div class="conversation-item <?= $active_conversation_id == $conv['conversation_id'] ? 'active' : '' ?>">
+                                <div class="avatar <?= $conv['is_group'] ? 'group' : '' ?> <?= !$conv['is_group'] && isUserOnline($conv['last_seen']) ? 'online' : '' ?>">
+                                    <?php if ($conv['is_group']): ?>
+                                        <i class="fas fa-users"></i>
+                                    <?php else: ?>
+                                        <?php if (!empty($conv['profile_picture'])): ?>
+                                            <img src="<?= $conv['profile_picture'] ?>" alt="<?= $conv['name'] ?>">
+                                        <?php else: ?>
+                                            <i class="fas fa-user"></i>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="conversation-details">
+                                    <div class="conversation-header">
+                                        <h3><?= htmlspecialchars($conv['is_group'] ? $conv['title'] : $conv['name']) ?></h3>
+                                        <span class="time"><?= $conv['time'] ?></span>
+                                    </div>
+                                    <div class="conversation-preview">
+                                        <p><?= !empty($conv['last_message']) ? htmlspecialchars(substr($conv['last_message'], 0, 30) . (strlen($conv['last_message']) > 30 ? '...' : '')) : 'No messages yet' ?></p>
+                                        <?php if ($conv['unread_count'] > 0): ?>
+                                            <span class="unread-count"><?= $conv['unread_count'] ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="no-conversations">
+                            <p>No conversations yet. Start a new chat!</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
         
         <div class="chat-main">
-            <div class="chat-main-header">
-                <div class="active-chat-info">
-                    <div class="avatar <?= $active_chat['is_group'] ? 'group' : '' ?> online">
-                        <?php if ($active_chat['is_group']): ?>
-                            <i class="fas fa-users"></i>
-                        <?php else: ?>
-                            <i class="fas fa-user"></i>
-                        <?php endif; ?>
-                    </div>
-                    <div class="chat-info">
-                        <h3><?= $active_chat['name'] ?></h3>
-                        <div class="active-users">
-                            <?php 
-                            $online_count = 0;
-                            foreach ($active_chat['participants'] as $participant) {
-                                if ($participant['online']) $online_count++;
-                            }
-                            ?>
+            <?php if ($active_conversation_id > 0 && $active_chat): ?>
+                <div class="chat-main-header">
+                    <div class="active-chat-info">
+                        <div class="avatar <?= $active_chat['is_group'] ? 'group' : '' ?> <?= !$active_chat['is_group'] && isUserOnline($active_chat['last_seen']) ? 'online' : '' ?>">
                             <?php if ($active_chat['is_group']): ?>
-                                <span class="online-status"><?= $online_count ?> online</span>
+                                <i class="fas fa-users"></i>
                             <?php else: ?>
-                                <span class="online-status">Online</span>
+                                <?php if (!empty($active_chat['profile_picture'])): ?>
+                                    <img src="<?= $active_chat['profile_picture'] ?>" alt="<?= $active_chat['name'] ?>">
+                                <?php else: ?>
+                                    <i class="fas fa-user"></i>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
-                    </div>
-                </div>
-                <div class="chat-actions">
-                    <button class="icon-button" title="Video call">
-                        <i class="fas fa-video"></i>
-                    </button>
-                    <button class="icon-button" title="Voice call">
-                        <i class="fas fa-phone"></i>
-                    </button>
-                    <button class="icon-button" title="Search conversation">
-                        <i class="fas fa-search"></i>
-                    </button>
-                    <button class="icon-button" title="More options">
-                        <i class="fas fa-ellipsis-h"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="messages-container">
-                <div class="messages">
-                    <?php foreach ($messages as $msg): ?>
-                    <div class="message <?= $msg['is_me'] ? 'sent' : 'received' ?>">
-                        <?php if (!$msg['is_me']): ?>
-                        <div class="avatar small">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <?php endif; ?>
-                        <div class="message-content">
-                            <?php if (!$msg['is_me']): ?>
-                            <div class="sender-name"><?= $msg['sender'] ?></div>
-                            <?php endif; ?>
-                            <div class="message-bubble">
-                                <p><?= $msg['message'] ?></p>
-                                <div class="message-time"><?= $msg['time'] ?></div>
+                        <div class="chat-info">
+                            <h3><?= htmlspecialchars($active_chat['is_group'] ? $active_chat['title'] : $active_chat['name']) ?></h3>
+                            <div class="active-users">
+                                <?php if ($active_chat['is_group']): ?>
+                                    <?php
+                                    $online_count = 0;
+                                    foreach ($active_chat['participants'] as $participant) {
+                                        if (isUserOnline($participant['last_seen'])) $online_count++;
+                                    }
+                                    ?>
+                                    <span class="online-status"><?= count($active_chat['participants']) ?> members, <?= $online_count ?> online</span>
+                                <?php else: ?>
+                                    <span class="online-status"><?= isUserOnline($active_chat['last_seen']) ? 'Online' : 'Last seen ' . formatLastSeen($active_chat['last_seen']) ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
-                    <?php endforeach; ?>
-                    
-                    <div class="typing-indicator">
-                        <div class="avatar small">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="typing-content">
-                            <div class="sender-name">Sarah Smith</div>
-                            <div class="typing-bubble">
-                                <div class="typing-dots">
-                                    <span></span>
-                                    <span></span>
-                                    <span></span>
+                    <div class="chat-actions">
+                        <?php if (!$active_chat['is_group']): ?>
+                            <button class="icon-button" title="Voice call">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        <?php endif; ?>
+                        <button class="icon-button" title="Conversation info">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button class="icon-button delete-conversation" title="Delete conversation" 
+                                data-conversation-id="<?= $active_conversation_id ?>">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="messages-container" id="messagesContainer">
+                    <div class="messages">
+                        <?php if (count($messages) > 0): ?>
+                            <?php foreach ($messages as $msg): ?>
+                            <div class="message <?= $msg['is_me'] ? 'sent' : 'received' ?>">
+                                <?php if (!$msg['is_me']): ?>
+                                <div class="avatar small">
+                                    <?php if (!empty($msg['profile_picture'])): ?>
+                                        <img src="<?= $msg['profile_picture'] ?>" alt="<?= $msg['sender_name'] ?>">
+                                    <?php else: ?>
+                                        <i class="fas fa-user"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endif; ?>
+                                <div class="message-content">
+                                    <?php if (!$msg['is_me'] && $active_chat['is_group']): ?>
+                                    <div class="sender-name"><?= htmlspecialchars($msg['sender_name']) ?></div>
+                                    <?php endif; ?>
+                                    <div class="message-bubble">
+                                        <p><?= htmlspecialchars($msg['message']) ?></p>
+                                        <div class="message-time"><?= $msg['time'] ?></div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="no-messages">
+                                <p>No messages yet. Start the conversation!</p>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
-            </div>
-            
-            <div class="message-input-container">
-                <div class="message-input-actions">
-                    <button class="icon-button" title="Add emoji">
-                        <i class="far fa-smile"></i>
-                    </button>
-                    <button class="icon-button" title="Attach file">
-                        <i class="fas fa-paperclip"></i>
-                    </button>
+                
+                <form id="sendMessageForm" class="message-input-container" autocomplete="off">
+                    <input type="hidden" name="conversation_id" value="<?= $active_conversation_id ?>">
+                    <div class="message-input-actions">
+                        <button type="button" class="icon-button" title="Add emoji">
+                            <i class="far fa-smile"></i>
+                        </button>
+                        <button type="button" class="icon-button" title="Attach file">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                    </div>
+                    <div class="message-input">
+                        <input type="text" name="message" id="messageInput" placeholder="Type a message..." required autocomplete="off">
+                    </div>
+                    <div class="message-send">
+                        <button type="submit" class="icon-button" title="Send message">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            <?php else: ?>
+                <div class="no-chat-selected">
+                    <div class="no-chat-content">
+                        <i class="fas fa-comments"></i>
+                        <h3>Select a conversation</h3>
+                        <p>Choose a conversation from the sidebar or start a new one</p>
+                    </div>
                 </div>
-                <div class="message-input">
-                    <input type="text" placeholder="Type a message...">
-                </div>
-                <div class="message-send">
-                    <button class="icon-button" title="Send message">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
 
+    <!-- New Group Conversation Modal -->
+  
+<div class="modal" id="newChatModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>New Group Conversation</h3>
+            <button type="button" class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <?php if (isset($error)): ?>
+            <div class="error-message" style="background: #ffebee; color: #c62828; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                <?= htmlspecialchars($error) ?>
+            </div>
+            <?php endif; ?>
+            
+            <form id="ajaxGroupForm">
+                <div class="form-group">
+                    <label for="conversation_title">Group Title:</label>
+                    <input type="text" id="conversation_title" name="title" placeholder="Enter group title" required>
+                </div>
+                <div class="form-group">
+                    <label>Select Participants (select at least one):</label>
+                    <div class="users-list">
+                        <?php foreach ($other_users as $user): ?>
+                        <div class="user-checkbox">
+                            <input type="checkbox" name="user_ids[]" value="<?= $user['user_id'] ?>" id="user_<?= $user['user_id'] ?>">
+                            <label for="user_<?= $user['user_id'] ?>">
+                                <div class="avatar small <?= isUserOnline($user['last_seen']) ? 'online' : '' ?>">
+                                    <?php if (!empty($user['profile_picture'])): ?>
+                                        <img src="<?= $user['profile_picture'] ?>" alt="<?= $user['fullname'] ?>">
+                                    <?php else: ?>
+                                        <i class="fas fa-user"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <span><?= htmlspecialchars($user['fullname']) ?></span>
+                            </label>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
     <style>
+    /* CSS styles remain the same as in the previous implementation */
     .chat-container {
         display: flex;
         height: calc(100vh - 80px);
@@ -338,6 +572,12 @@ $messages = [
         overflow-y: auto;
     }
     
+    .conversation-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
     .conversation-item {
         display: flex;
         padding: 10px 15px;
@@ -366,6 +606,13 @@ $messages = [
         font-size: 20px;
         margin-right: 10px;
         position: relative;
+        overflow: hidden;
+    }
+    
+    .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     
     .avatar.small {
@@ -447,6 +694,12 @@ $messages = [
         margin-left: 5px;
     }
     
+    .no-conversations {
+        padding: 20px;
+        text-align: center;
+        color: #65676b;
+    }
+    
     .chat-main {
         flex: 1;
         display: flex;
@@ -478,7 +731,17 @@ $messages = [
     
     .online-status {
         font-size: 13px;
-        color: #31a24c;
+        color: #65676b;
+    }
+    
+    .online-status:before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #31a24c;
+        margin-right: 5px;
     }
     
     .messages-container {
@@ -542,57 +805,10 @@ $messages = [
         color: rgba(255, 255, 255, 0.8);
     }
     
-    .typing-indicator {
-        display: flex;
-        margin-bottom: 15px;
-        align-items: center;
-    }
-    
-    .typing-content {
-        margin-left: 10px;
-    }
-    
-    .typing-bubble {
-        background-color: white;
-        padding: 10px 15px;
-        border-radius: 18px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        display: inline-block;
-    }
-    
-    .typing-dots {
-        display: flex;
-        align-items: center;
-        height: 10px;
-    }
-    
-    .typing-dots span {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background-color: #65676b;
-        margin: 0 2px;
-        display: inline-block;
-        animation: typing-animation 1.4s infinite ease-in-out both;
-    }
-    
-    .typing-dots span:nth-child(1) {
-        animation-delay: -0.32s;
-    }
-    
-    .typing-dots span:nth-child(2) {
-        animation-delay: -0.16s;
-    }
-    
-    @keyframes typing-animation {
-        0%, 80%, 100% { 
-            transform: scale(0.8);
-            opacity: 0.5;
-        }
-        40% { 
-            transform: scale(1);
-            opacity: 1;
-        }
+    .no-messages {
+        text-align: center;
+        padding: 40px;
+        color: #65676b;
     }
     
     .message-input-container {
@@ -625,6 +841,162 @@ $messages = [
         outline: none;
         background-color: #e4e6e9;
     }
+    
+    .no-chat-selected {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f2f5;
+    }
+    
+    .no-chat-content {
+        text-align: center;
+        color: #65676b;
+    }
+    
+    .no-chat-content i {
+        font-size: 60px;
+        margin-bottom: 20px;
+        color: #c1c7cd;
+    }
+    
+    .no-chat-content h3 {
+        margin-bottom: 10px;
+        font-size: 24px;
+    }
+    
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background-color: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #e6e6e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+    }
+    
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #65676b;
+    }
+    
+    .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    
+    .form-group input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .users-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding: 10px;
+    }
+    
+    .user-checkbox {
+        margin-bottom: 10px;
+    }
+    
+    .user-checkbox:last-child {
+        margin-bottom: 0;
+    }
+    
+    .user-checkbox label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        margin-bottom: 0;
+        font-weight: normal;
+    }
+    
+    .user-checkbox .avatar {
+        margin-right: 10px;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .btn-primary {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background-color: #e4e6eb;
+        color: #4b4f56;
+    }
+    .delete-conversation {
+    color: #e74c3c;
+}
+
+.delete-conversation:hover {
+    background-color: rgba(231, 76, 60, 0.1);
+}
     
     /* Responsive design */
     @media (max-width: 900px) {
@@ -660,66 +1032,229 @@ $messages = [
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Conversation item click handler
-        const conversationItems = document.querySelectorAll('.conversation-item');
-        conversationItems.forEach(item => {
-            item.addEventListener('click', function() {
-                conversationItems.forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
-                
-                // In a real app, you would load the conversation data via AJAX here
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // New conversation modal
+        const newChatBtn = document.getElementById('newChatBtn');
+        const newChatModal = document.getElementById('newChatModal');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        // AJAX group creation
+        const ajaxGroupForm = document.getElementById('ajaxGroupForm');
+        if (ajaxGroupForm) {
+            ajaxGroupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(ajaxGroupForm);
+                // Show loading indicator
+                const submitBtn = ajaxGroupForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating...';
+                fetch('API/create_group.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Group';
+                    if (data.success) {
+                        window.location.href = 'charts.php?conversation_id=' + data.conversation_id;
+                    } else {
+                        // Show error
+                        let errorDiv = ajaxGroupForm.querySelector('.error-message');
+                        if (!errorDiv) {
+                            errorDiv = document.createElement('div');
+                            errorDiv.className = 'error-message';
+                            errorDiv.style.background = '#ffebee';
+                            errorDiv.style.color = '#c62828';
+                            errorDiv.style.padding = '10px';
+                            errorDiv.style.borderRadius = '4px';
+                            errorDiv.style.marginBottom = '15px';
+                            ajaxGroupForm.prepend(errorDiv);
+                        }
+                        errorDiv.textContent = data.error || 'Unknown error';
+                    }
+                })
+                .catch(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Group';
+                    let errorDiv = ajaxGroupForm.querySelector('.error-message');
+                    if (!errorDiv) {
+                        errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-message';
+                        errorDiv.style.background = '#ffebee';
+                        errorDiv.style.color = '#c62828';
+                        errorDiv.style.padding = '10px';
+                        errorDiv.style.borderRadius = '4px';
+                        errorDiv.style.marginBottom = '15px';
+                        ajaxGroupForm.prepend(errorDiv);
+                    }
+                    errorDiv.textContent = 'Network error. Please try again.';
+                });
+            });
+        }
+
+        // Delete conversation functionality
+    const deleteButtons = document.querySelectorAll('.delete-conversation');
+deleteButtons.forEach(button => {
+    button.addEventListener('click', function() {
+        const conversationId = this.getAttribute('data-conversation-id');
+        if (confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+            const formData = new FormData();
+            formData.append('conversation_id', conversationId);
+            
+            fetch('delete.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'charts.php';
+                } else {
+                    alert('Error deleting conversation: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting conversation. Please check your connection and try again.');
+            });
+        }
+    });
+});
+        
+        if (newChatBtn && newChatModal) {
+            newChatBtn.addEventListener('click', function() {
+                newChatModal.classList.add('active');
+            });
+        }
+        
+        closeModalButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                newChatModal.classList.remove('active');
             });
         });
         
-        // Message send functionality
-        const messageInput = document.querySelector('.message-input input');
-        const sendButton = document.querySelector('.message-send button');
-        
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message) {
-                // In a real app, you would send the message to the server via AJAX
-                console.log('Sending message:', message);
-                messageInput.value = '';
-            }
-        }
-        
-        sendButton.addEventListener('click', sendMessage);
-        
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === newChatModal) {
+                newChatModal.classList.remove('active');
             }
         });
         
-        // Simulate receiving a new message after 5 seconds
-        setTimeout(() => {
-            const messagesContainer = document.querySelector('.messages');
-            const typingIndicator = document.querySelector('.typing-indicator');
-            
-            if (typingIndicator) {
-                typingIndicator.remove();
+        // Search functionality
+        const chatSearch = document.getElementById('chatSearch');
+        if (chatSearch) {
+            chatSearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const conversationItems = document.querySelectorAll('.conversation-item');
                 
-                const newMessage = document.createElement('div');
-                newMessage.className = 'message received';
-                newMessage.innerHTML = `
-                    <div class="avatar small">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="message-content">
-                        <div class="sender-name">Sarah Smith</div>
-                        <div class="message-bubble">
-                            <p>I think I finally understand it now!</p>
-                            <div class="message-time">Just now</div>
-                        </div>
-                    </div>
-                `;
-                
-                messagesContainer.appendChild(newMessage);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }, 5000);
+                conversationItems.forEach(item => {
+                    const conversationName = item.querySelector('h3').textContent.toLowerCase();
+                    const conversationPreview = item.querySelector('p').textContent.toLowerCase();
+                    
+                    if (conversationName.includes(searchTerm) || conversationPreview.includes(searchTerm)) {
+                        item.parentElement.style.display = 'block';
+                    } else {
+                        item.parentElement.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Real-time message fetching and sending with AJAX
+        <?php if ($active_conversation_id > 0): ?>
+        function fetchMessages() {
+            fetch('API/fetch_messages.php?conversation_id=<?= $active_conversation_id ?>')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.messages) {
+                        const messagesDiv = document.querySelector('.messages');
+                        if (!messagesDiv) return;
+                        messagesDiv.innerHTML = '';
+                        data.messages.forEach(msg => {
+                            const msgDiv = document.createElement('div');
+                            msgDiv.className = 'message ' + (msg.is_me ? 'sent' : 'received');
+                            let avatarHtml = '';
+                            if (!msg.is_me) {
+                                avatarHtml = `<div class=\"avatar small\">${msg.profile_picture ? `<img src='${msg.profile_picture}' alt='${msg.sender_name}'>` : `<i class='fas fa-user'></i>`}</div>`;
+                            }
+                            let senderNameHtml = '';
+                            if (!msg.is_me && <?= $active_chat['is_group'] ? 'true' : 'false' ?>) {
+                                senderNameHtml = `<div class='sender-name'>${msg.sender_name}</div>`;
+                            }
+                            msgDiv.innerHTML = `${avatarHtml}<div class='message-content'>${senderNameHtml}<div class='message-bubble'><p>${msg.message}</p><div class='message-time'>${msg.time}</div></div></div>`;
+                            messagesDiv.appendChild(msgDiv);
+                        });
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                });
+        }
+        setInterval(fetchMessages, 3000);
+        fetchMessages();
+
+        // AJAX send message
+        const sendMessageForm = document.getElementById('sendMessageForm');
+        const messageInput = document.getElementById('messageInput');
+        if (sendMessageForm && messageInput) {
+            sendMessageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (!message) return;
+                const formData = new FormData(sendMessageForm);
+                fetch('API/send_message.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        messageInput.value = '';
+                        fetchMessages();
+                    }
+                });
+            });
+        }
+        <?php endif; ?>
     });
     </script>
 </body>
 </html>
+
+<?php
+// Helper functions
+function isUserOnline($lastSeen) {
+    if (!$lastSeen) return false;
+    
+    $lastSeenTime = strtotime($lastSeen);
+    $currentTime = time();
+    
+    // Consider user online if they were active in the last 5 minutes
+    return ($currentTime - $lastSeenTime) < 300;
+}
+
+function formatLastSeen($lastSeen) {
+    if (!$lastSeen) return 'a long time ago';
+    
+    $lastSeenTime = strtotime($lastSeen);
+    $currentTime = time();
+    $diff = $currentTime - $lastSeenTime;
+    
+    if ($diff < 60) {
+        return 'just now';
+    } elseif ($diff < 3600) {
+        return floor($diff / 60) . ' minutes ago';
+    } elseif ($diff < 86400) {
+        return floor($diff / 3600) . ' hours ago';
+    } else {
+        return floor($diff / 86400) . ' days ago';
+    }
+}
+?>
