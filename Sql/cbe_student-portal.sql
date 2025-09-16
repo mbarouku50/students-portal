@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Sep 15, 2025 at 12:44 PM
+-- Generation Time: Sep 16, 2025 at 11:02 AM
 -- Server version: 10.11.13-MariaDB-0+deb12u1
 -- PHP Version: 8.2.29
 
@@ -65,9 +65,11 @@ CREATE TABLE `conversations` (
 --
 
 INSERT INTO `conversations` (`conversation_id`, `title`, `is_group`, `created_at`) VALUES
-(5, 'bahati issa msuya', 0, '2025-09-15 15:00:51'),
-(6, 'BIT groups', 0, '2025-09-15 15:16:52'),
-(7, 'BIT groups', 0, '2025-09-15 15:16:58');
+(1, 'bahati issa msuya', 0, '2025-09-16 13:35:50'),
+(2, 'BIT', 0, '2025-09-16 13:37:21'),
+(3, 'BIT', 0, '2025-09-16 13:37:25'),
+(4, 'BIT', 1, '2025-09-16 13:43:38'),
+(5, 'bahati issa msuya', 0, '2025-09-16 13:44:53');
 
 -- --------------------------------------------------------
 
@@ -77,22 +79,21 @@ INSERT INTO `conversations` (`conversation_id`, `title`, `is_group`, `created_at
 
 CREATE TABLE `conversation_participants` (
   `id` int(11) NOT NULL,
-  `conversation_id` int(11) DEFAULT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `joined_at` datetime DEFAULT current_timestamp()
+  `conversation_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `conversation_participants`
 --
 
-INSERT INTO `conversation_participants` (`id`, `conversation_id`, `user_id`, `joined_at`) VALUES
-(9, 5, 1, '2025-09-15 15:00:51'),
-(10, 5, 3, '2025-09-15 15:00:52'),
-(11, 6, 3, '2025-09-15 15:16:52'),
-(12, 6, 1, '2025-09-15 15:16:53'),
-(13, 7, 3, '2025-09-15 15:16:58'),
-(14, 7, 1, '2025-09-15 15:16:58');
+INSERT INTO `conversation_participants` (`id`, `conversation_id`, `user_id`) VALUES
+(2, 1, 3),
+(3, 2, 3),
+(5, 3, 3),
+(7, 4, 3),
+(9, 5, 1),
+(10, 5, 3);
 
 -- --------------------------------------------------------
 
@@ -175,129 +176,26 @@ CREATE TABLE `documents` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `first_year_sem1_documents`
---
-
-CREATE TABLE `first_year_sem1_documents` (
-  `doc_id` int(11) NOT NULL,
-  `course_id` int(11) NOT NULL,
-  `doc_type` varchar(50) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(20) NOT NULL,
-  `level` varchar(20) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL,
-  `download_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `first_year_sem1_documents`
---
-
-INSERT INTO `first_year_sem1_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`, `download_count`) VALUES
-(1, 1, 'cover_pages', 'DATABASE ESSENTIAL', '', 'uploads/documents/68b04e5a029d4_1756384858.docx', 'KILOSA DISTRICT HOSPITAL.docx', 12165, 'docx', 'bachelor', '2025-08-28 12:40:58', 0, 0),
-(2, 1, 'lecture_notes', 'Accountancy', '', 'uploads/documents/68be7f87b849c_1757314951.pdf', 'TIMETABLE.pdf', 461161, 'pdf', 'diploma2', '2025-09-08 07:02:31', 0, 0);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `first_year_sem2_documents`
---
-
-CREATE TABLE `first_year_sem2_documents` (
-  `doc_id` int(11) NOT NULL,
-  `course_id` int(11) NOT NULL,
-  `doc_type` varchar(50) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(20) NOT NULL,
-  `level` varchar(20) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL,
-  `download_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `first_year_sem2_documents`
---
-
-INSERT INTO `first_year_sem2_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`, `download_count`) VALUES
-(1, 1, 'lecture_notes', 'Accountancy', '', 'uploads/documents/68be7f1912733_1757314841.pdf', 'GROUPS 2.pdf', 213790, 'pdf', 'certificate', '2025-09-08 07:00:41', 0, 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `fourth_year_sem1_documents`
---
-
-CREATE TABLE `fourth_year_sem1_documents` (
-  `doc_id` int(11) NOT NULL,
-  `course_id` int(11) NOT NULL,
-  `doc_type` varchar(50) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(20) NOT NULL,
-  `level` varchar(20) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL,
-  `download_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `fourth_year_sem2_documents`
---
-
-CREATE TABLE `fourth_year_sem2_documents` (
-  `doc_id` int(11) NOT NULL,
-  `course_id` int(11) NOT NULL,
-  `doc_type` varchar(50) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(20) NOT NULL,
-  `level` varchar(20) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL,
-  `download_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `messages`
 --
 
 CREATE TABLE `messages` (
-  `id` int(11) NOT NULL,
-  `conversation_id` int(11) DEFAULT NULL,
-  `sender_id` int(11) DEFAULT NULL,
-  `message` text DEFAULT NULL,
-  `attachment` varchar(255) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  `is_read` tinyint(1) DEFAULT 0
+  `message_id` int(11) NOT NULL,
+  `conversation_id` int(11) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `message` text NOT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `messages`
 --
 
-INSERT INTO `messages` (`id`, `conversation_id`, `sender_id`, `message`, `attachment`, `created_at`, `is_read`) VALUES
-(23, 5, 1, 'HI', NULL, '2025-09-15 15:01:55', 1),
-(24, 5, 3, 'SHOBO', NULL, '2025-09-15 15:02:41', 1);
+INSERT INTO `messages` (`message_id`, `conversation_id`, `sender_id`, `message`, `is_read`, `created_at`) VALUES
+(1, 1, 1, 'hi', 1, '2025-09-16 13:36:00'),
+(2, 1, 3, 'mamb', 1, '2025-09-16 13:36:38'),
+(3, 1, 1, 'poa mzm wew', 1, '2025-09-16 13:36:57');
 
 -- --------------------------------------------------------
 
@@ -336,10 +234,40 @@ INSERT INTO `print_jobs` (`job_id`, `user_name`, `phone_number`, `stationery_id`
 -- --------------------------------------------------------
 
 --
--- Table structure for table `second_year_sem1_documents`
+-- Table structure for table `sem1_bachelor1_documents`
 --
 
-CREATE TABLE `second_year_sem1_documents` (
+CREATE TABLE `sem1_bachelor1_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `sem1_bachelor1_documents`
+--
+
+INSERT INTO `sem1_bachelor1_documents` (`doc_id`, `course_id`, `doc_type`, `title`, `description`, `file_path`, `file_name`, `file_size`, `file_type`, `level`, `uploaded_at`, `uploaded_by`, `download_count`) VALUES
+(2, 1, 'lecture_notes', 'Accountancy', '', 'uploads/documents/68c90c0c74109_1758006284.pdf', 'TIMETABLE.pdf', 461161, 'pdf', 'bachelor1', '2025-09-16 07:04:44', 0, 0),
+(3, 1, 'cover_pages', 'introo', '', 'uploads/documents/68c9177721a69_1758009207.pdf', 'TIMETABLE.pdf', 461161, 'pdf', 'bachelor1', '2025-09-16 07:53:27', 0, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem1_bachelor2_documents`
+--
+
+CREATE TABLE `sem1_bachelor2_documents` (
   `doc_id` int(11) NOT NULL,
   `course_id` int(11) NOT NULL,
   `doc_type` varchar(50) NOT NULL,
@@ -358,10 +286,208 @@ CREATE TABLE `second_year_sem1_documents` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `second_year_sem2_documents`
+-- Table structure for table `sem1_bachelor3_documents`
 --
 
-CREATE TABLE `second_year_sem2_documents` (
+CREATE TABLE `sem1_bachelor3_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem1_certificate_documents`
+--
+
+CREATE TABLE `sem1_certificate_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem1_diploma1_documents`
+--
+
+CREATE TABLE `sem1_diploma1_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem1_diploma2_documents`
+--
+
+CREATE TABLE `sem1_diploma2_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem2_bachelor1_documents`
+--
+
+CREATE TABLE `sem2_bachelor1_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem2_bachelor2_documents`
+--
+
+CREATE TABLE `sem2_bachelor2_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem2_bachelor3_documents`
+--
+
+CREATE TABLE `sem2_bachelor3_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem2_certificate_documents`
+--
+
+CREATE TABLE `sem2_certificate_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem2_diploma1_documents`
+--
+
+CREATE TABLE `sem2_diploma1_documents` (
+  `doc_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `doc_type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `file_type` varchar(20) NOT NULL,
+  `level` varchar(20) NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
+  `uploaded_by` int(11) DEFAULT NULL,
+  `download_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sem2_diploma2_documents`
+--
+
+CREATE TABLE `sem2_diploma2_documents` (
   `doc_id` int(11) NOT NULL,
   `course_id` int(11) NOT NULL,
   `doc_type` varchar(50) NOT NULL,
@@ -426,50 +552,6 @@ CREATE TABLE `system_settings` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `third_year_sem1_documents`
---
-
-CREATE TABLE `third_year_sem1_documents` (
-  `doc_id` int(11) NOT NULL,
-  `course_id` int(11) NOT NULL,
-  `doc_type` varchar(50) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(20) NOT NULL,
-  `level` varchar(20) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL,
-  `download_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `third_year_sem2_documents`
---
-
-CREATE TABLE `third_year_sem2_documents` (
-  `doc_id` int(11) NOT NULL,
-  `course_id` int(11) NOT NULL,
-  `doc_type` varchar(50) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(20) NOT NULL,
-  `level` varchar(20) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` int(11) DEFAULT NULL,
-  `download_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `users`
 --
 
@@ -498,8 +580,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `fullname`, `email`, `reg`, `password`, `program`, `year`, `profile_picture`, `last_seen`, `created_at`, `email_notifications`, `course_updates`, `assignment_alerts`, `newsletter`, `profile_visibility`, `show_email`, `data_collection`) VALUES
-(1, 'mbaruku', 'mbarukhemedy50@gmail.com', '03.2481.01.01.2023', '6feedd98b28e276cb59045d067aaddd1a31f5b8c', '', '3', 'uploads/profile_pictures/profile_1_1757671765.png', '2025-09-15 15:40:46', '2025-05-30 17:02:48', 1, 1, 1, 1, 1, 0, 1),
-(3, 'bahati issa msuya', 'bahati@gmail.com', '03.1434.01.01.2023', 'b1734567c261fa3bb2628ac4883b0a587cf76161', 'IT', '2', 'uploads/profile_pictures/profile_3_1757928469.png', '2025-09-15 15:02:34', '2025-09-15 09:27:06', 1, 1, 1, 1, 1, 0, 1);
+(1, 'mbaruku', 'mbarukhemedy50@gmail.com', '03.2481.01.01.2023', '6feedd98b28e276cb59045d067aaddd1a31f5b8c', '', '3', 'uploads/profile_pictures/profile_1_1757671765.png', '2025-09-16 14:00:57', '2025-05-30 17:02:48', 1, 1, 1, 1, 1, 0, 1),
+(3, 'bahati issa msuya', 'bahati@gmail.com', '03.1434.01.01.2023', 'b1734567c261fa3bb2628ac4883b0a587cf76161', 'IT', '2', 'uploads/profile_pictures/profile_3_1757928469.png', '2025-09-16 13:36:34', '2025-09-15 09:27:06', 1, 1, 1, 1, 1, 0, 1);
 
 --
 -- Indexes for dumped tables
@@ -523,7 +605,8 @@ ALTER TABLE `conversations`
 --
 ALTER TABLE `conversation_participants`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `conversation_id` (`conversation_id`);
+  ADD UNIQUE KEY `unique_participant` (`conversation_id`,`user_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `courses`
@@ -547,39 +630,12 @@ ALTER TABLE `documents`
   ADD KEY `course_id` (`course_id`);
 
 --
--- Indexes for table `first_year_sem1_documents`
---
-ALTER TABLE `first_year_sem1_documents`
-  ADD PRIMARY KEY (`doc_id`),
-  ADD KEY `course_id` (`course_id`);
-
---
--- Indexes for table `first_year_sem2_documents`
---
-ALTER TABLE `first_year_sem2_documents`
-  ADD PRIMARY KEY (`doc_id`),
-  ADD KEY `course_id` (`course_id`);
-
---
--- Indexes for table `fourth_year_sem1_documents`
---
-ALTER TABLE `fourth_year_sem1_documents`
-  ADD PRIMARY KEY (`doc_id`),
-  ADD KEY `course_id` (`course_id`);
-
---
--- Indexes for table `fourth_year_sem2_documents`
---
-ALTER TABLE `fourth_year_sem2_documents`
-  ADD PRIMARY KEY (`doc_id`),
-  ADD KEY `course_id` (`course_id`);
-
---
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `conversation_id` (`conversation_id`);
+  ADD PRIMARY KEY (`message_id`),
+  ADD KEY `conversation_id` (`conversation_id`),
+  ADD KEY `sender_id` (`sender_id`);
 
 --
 -- Indexes for table `print_jobs`
@@ -589,16 +645,86 @@ ALTER TABLE `print_jobs`
   ADD KEY `stationery_id` (`stationery_id`);
 
 --
--- Indexes for table `second_year_sem1_documents`
+-- Indexes for table `sem1_bachelor1_documents`
 --
-ALTER TABLE `second_year_sem1_documents`
+ALTER TABLE `sem1_bachelor1_documents`
   ADD PRIMARY KEY (`doc_id`),
   ADD KEY `course_id` (`course_id`);
 
 --
--- Indexes for table `second_year_sem2_documents`
+-- Indexes for table `sem1_bachelor2_documents`
 --
-ALTER TABLE `second_year_sem2_documents`
+ALTER TABLE `sem1_bachelor2_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem1_bachelor3_documents`
+--
+ALTER TABLE `sem1_bachelor3_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem1_certificate_documents`
+--
+ALTER TABLE `sem1_certificate_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem1_diploma1_documents`
+--
+ALTER TABLE `sem1_diploma1_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem1_diploma2_documents`
+--
+ALTER TABLE `sem1_diploma2_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem2_bachelor1_documents`
+--
+ALTER TABLE `sem2_bachelor1_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem2_bachelor2_documents`
+--
+ALTER TABLE `sem2_bachelor2_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem2_bachelor3_documents`
+--
+ALTER TABLE `sem2_bachelor3_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem2_certificate_documents`
+--
+ALTER TABLE `sem2_certificate_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem2_diploma1_documents`
+--
+ALTER TABLE `sem2_diploma1_documents`
+  ADD PRIMARY KEY (`doc_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `sem2_diploma2_documents`
+--
+ALTER TABLE `sem2_diploma2_documents`
   ADD PRIMARY KEY (`doc_id`),
   ADD KEY `course_id` (`course_id`);
 
@@ -614,20 +740,6 @@ ALTER TABLE `stationery`
 ALTER TABLE `system_settings`
   ADD PRIMARY KEY (`setting_id`),
   ADD UNIQUE KEY `category_name` (`setting_category`,`setting_name`);
-
---
--- Indexes for table `third_year_sem1_documents`
---
-ALTER TABLE `third_year_sem1_documents`
-  ADD PRIMARY KEY (`doc_id`),
-  ADD KEY `course_id` (`course_id`);
-
---
--- Indexes for table `third_year_sem2_documents`
---
-ALTER TABLE `third_year_sem2_documents`
-  ADD PRIMARY KEY (`doc_id`),
-  ADD KEY `course_id` (`course_id`);
 
 --
 -- Indexes for table `users`
@@ -651,13 +763,13 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT for table `conversations`
 --
 ALTER TABLE `conversations`
-  MODIFY `conversation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `conversation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `conversation_participants`
 --
 ALTER TABLE `conversation_participants`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `courses`
@@ -678,34 +790,10 @@ ALTER TABLE `documents`
   MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `first_year_sem1_documents`
---
-ALTER TABLE `first_year_sem1_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `first_year_sem2_documents`
---
-ALTER TABLE `first_year_sem2_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `fourth_year_sem1_documents`
---
-ALTER TABLE `fourth_year_sem1_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `fourth_year_sem2_documents`
---
-ALTER TABLE `fourth_year_sem2_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `message_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `print_jobs`
@@ -714,15 +802,75 @@ ALTER TABLE `print_jobs`
   MODIFY `job_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
--- AUTO_INCREMENT for table `second_year_sem1_documents`
+-- AUTO_INCREMENT for table `sem1_bachelor1_documents`
 --
-ALTER TABLE `second_year_sem1_documents`
+ALTER TABLE `sem1_bachelor1_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `sem1_bachelor2_documents`
+--
+ALTER TABLE `sem1_bachelor2_documents`
   MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `second_year_sem2_documents`
+-- AUTO_INCREMENT for table `sem1_bachelor3_documents`
 --
-ALTER TABLE `second_year_sem2_documents`
+ALTER TABLE `sem1_bachelor3_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem1_certificate_documents`
+--
+ALTER TABLE `sem1_certificate_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem1_diploma1_documents`
+--
+ALTER TABLE `sem1_diploma1_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem1_diploma2_documents`
+--
+ALTER TABLE `sem1_diploma2_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `sem2_bachelor1_documents`
+--
+ALTER TABLE `sem2_bachelor1_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem2_bachelor2_documents`
+--
+ALTER TABLE `sem2_bachelor2_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem2_bachelor3_documents`
+--
+ALTER TABLE `sem2_bachelor3_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem2_certificate_documents`
+--
+ALTER TABLE `sem2_certificate_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `sem2_diploma1_documents`
+--
+ALTER TABLE `sem2_diploma1_documents`
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sem2_diploma2_documents`
+--
+ALTER TABLE `sem2_diploma2_documents`
   MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -738,18 +886,6 @@ ALTER TABLE `system_settings`
   MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `third_year_sem1_documents`
---
-ALTER TABLE `third_year_sem1_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `third_year_sem2_documents`
---
-ALTER TABLE `third_year_sem2_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
@@ -763,7 +899,8 @@ ALTER TABLE `users`
 -- Constraints for table `conversation_participants`
 --
 ALTER TABLE `conversation_participants`
-  ADD CONSTRAINT `conversation_participants_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `conversation_participants_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`),
+  ADD CONSTRAINT `conversation_participants_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `coverpage_documents`
@@ -778,64 +915,17 @@ ALTER TABLE `documents`
   ADD CONSTRAINT `documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
 
 --
--- Constraints for table `first_year_sem1_documents`
---
-ALTER TABLE `first_year_sem1_documents`
-  ADD CONSTRAINT `first_year_sem1_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
--- Constraints for table `first_year_sem2_documents`
---
-ALTER TABLE `first_year_sem2_documents`
-  ADD CONSTRAINT `first_year_sem2_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
--- Constraints for table `fourth_year_sem1_documents`
---
-ALTER TABLE `fourth_year_sem1_documents`
-  ADD CONSTRAINT `fourth_year_sem1_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
--- Constraints for table `fourth_year_sem2_documents`
---
-ALTER TABLE `fourth_year_sem2_documents`
-  ADD CONSTRAINT `fourth_year_sem2_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
 -- Constraints for table `messages`
 --
 ALTER TABLE `messages`
-  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`),
+  ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `print_jobs`
 --
 ALTER TABLE `print_jobs`
   ADD CONSTRAINT `print_jobs_ibfk_1` FOREIGN KEY (`stationery_id`) REFERENCES `stationery` (`stationery_id`);
-
---
--- Constraints for table `second_year_sem1_documents`
---
-ALTER TABLE `second_year_sem1_documents`
-  ADD CONSTRAINT `second_year_sem1_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
--- Constraints for table `second_year_sem2_documents`
---
-ALTER TABLE `second_year_sem2_documents`
-  ADD CONSTRAINT `second_year_sem2_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
--- Constraints for table `third_year_sem1_documents`
---
-ALTER TABLE `third_year_sem1_documents`
-  ADD CONSTRAINT `third_year_sem1_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
-
---
--- Constraints for table `third_year_sem2_documents`
---
-ALTER TABLE `third_year_sem2_documents`
-  ADD CONSTRAINT `third_year_sem2_documents_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

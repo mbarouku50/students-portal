@@ -1,4 +1,5 @@
 <?php
+
 session_name('user_session');
 session_start();
 
@@ -15,6 +16,7 @@ include("temperate/header.php");
 $user_id = $_SESSION['user_id'];
         
         // Handle conversation creation
+// Replace your current error handling with this:
 if (isset($_POST['create_conversation'])) {
     $user_id = $_SESSION['user_id'];
     $title = mysqli_real_escape_string($conn, trim($_POST['title']));
@@ -22,22 +24,25 @@ if (isset($_POST['create_conversation'])) {
     
     // Validate inputs
     if (empty($title)) {
-        $error = "Group title is required";
+        $_SESSION['error'] = "Group title is required";
+        header("Location: charts.php");
+        exit();
     } elseif (empty($user_ids)) {
-        $error = "Please select at least one participant";
+        $_SESSION['error'] = "Please select at least one participant";
+        header("Location: charts.php");
+        exit();
     } else {
-        // Create conversation
-        $is_group = (count($user_ids) > 1) ? 1 : 0;
+        // Always treat as group
+        $is_group = 1;
         $insert_conversation = "INSERT INTO conversations (title, is_group, created_at) 
                                 VALUES ('$title', $is_group, NOW())";
         if (mysqli_query($conn, $insert_conversation)) {
             $conversation_id = mysqli_insert_id($conn);
-            
             // Add participants
             $participants = array_merge($user_ids, [$user_id]); // Include current user
             $participants = array_unique($participants);
-            
             $success = true;
+            
             foreach ($participants as $participant_id) {
                 $participant_id = intval($participant_id);
                 $add_participant = "INSERT INTO conversation_participants (conversation_id, user_id) 
@@ -52,32 +57,39 @@ if (isset($_POST['create_conversation'])) {
                 header("Location: charts.php?conversation_id=$conversation_id");
                 exit();
             } else {
-                $error = "Error adding participants to the conversation";
+                // Clean up the conversation if participants couldn't be added
+                mysqli_query($conn, "DELETE FROM conversations WHERE conversation_id = $conversation_id");
+                $_SESSION['error'] = "Error adding participants to the conversation";
+                header("Location: charts.php");
+                exit();
             }
         } else {
-            $error = "Error creating conversation: " . mysqli_error($conn);
+            $_SESSION['error'] = "Error creating conversation: " . mysqli_error($conn);
+            header("Location: charts.php");
+            exit();
         }
     }
-    
-    // If there was an error, store it in session to display later
-    if (isset($error)) {
-        $_SESSION['error'] = $error;
-    }
+}
+// If there was an error, store it in session to display later
+if (isset($error)) {
+    $_SESSION['error'] = $error;
 }
 
 // Handle starting a new individual conversation
+// Replace your individual conversation creation with this:
 if (isset($_GET['start_chat'])) {
     $other_user_id = intval($_GET['start_chat']);
     $user_id = $_SESSION['user_id'];
     
-    // Check if conversation already exists
+    // Check if conversation already exists between these two users
     $check_conversation = "SELECT c.conversation_id 
                           FROM conversations c
                           INNER JOIN conversation_participants cp1 ON c.conversation_id = cp1.conversation_id
                           INNER JOIN conversation_participants cp2 ON c.conversation_id = cp2.conversation_id
                           WHERE cp1.user_id = $user_id 
                           AND cp2.user_id = $other_user_id 
-                          AND c.is_group = 0";
+                          AND c.is_group = 0
+                          LIMIT 1";
     $result = mysqli_query($conn, $check_conversation);
     
     if (mysqli_num_rows($result) > 0) {
@@ -86,28 +98,50 @@ if (isset($_GET['start_chat'])) {
         header("Location: charts.php?conversation_id=" . $conversation['conversation_id']);
         exit();
     } else {
-        // Create new conversation
+        // Create new individual conversation
         $other_user_query = "SELECT fullname FROM users WHERE user_id = $other_user_id";
         $other_user_result = mysqli_query($conn, $other_user_query);
-        $other_user = mysqli_fetch_assoc($other_user_result);
-        $title = $other_user['fullname'];
         
-        $insert_conversation = "INSERT INTO conversations (title, is_group, created_at) 
-                                VALUES ('$title', 0, NOW())";
-        mysqli_query($conn, $insert_conversation);
-        $conversation_id = mysqli_insert_id($conn);
-        
-        // Add participants
-        $add_participant1 = "INSERT INTO conversation_participants (conversation_id, user_id) 
-                            VALUES ($conversation_id, $user_id)";
-        mysqli_query($conn, $add_participant1);
-        
-        $add_participant2 = "INSERT INTO conversation_participants (conversation_id, user_id) 
-                            VALUES ($conversation_id, $other_user_id)";
-        mysqli_query($conn, $add_participant2);
-        
-        header("Location: charts.php?conversation_id=$conversation_id");
-        exit();
+        if (mysqli_num_rows($other_user_result) > 0) {
+            $other_user = mysqli_fetch_assoc($other_user_result);
+            $title = mysqli_real_escape_string($conn, $other_user['fullname']);
+            
+            // Start transaction
+            mysqli_begin_transaction($conn);
+            
+            try {
+                $insert_conversation = "INSERT INTO conversations (title, is_group, created_at) 
+                                        VALUES ('$title', 0, NOW())";
+                if (mysqli_query($conn, $insert_conversation)) {
+                    $conversation_id = mysqli_insert_id($conn);
+                    
+                    // Add participants
+                    $add_participant1 = "INSERT INTO conversation_participants (conversation_id, user_id) 
+                                        VALUES ($conversation_id, $user_id)";
+                    $add_participant2 = "INSERT INTO conversation_participants (conversation_id, user_id) 
+                                        VALUES ($conversation_id, $other_user_id)";
+                    
+                    if (mysqli_query($conn, $add_participant1) && mysqli_query($conn, $add_participant2)) {
+                        mysqli_commit($conn);
+                        header("Location: charts.php?conversation_id=$conversation_id");
+                        exit();
+                    } else {
+                        throw new Exception("Error adding participants");
+                    }
+                } else {
+                    throw new Exception("Error creating conversation");
+                }
+            } catch (Exception $e) {
+                mysqli_rollback($conn);
+                $_SESSION['error'] = "Error starting conversation: " . $e->getMessage();
+                header("Location: charts.php");
+                exit();
+            }
+        } else {
+            $_SESSION['error'] = "User not found";
+            header("Location: charts.php");
+            exit();
+        }
     }
 }
 
@@ -120,28 +154,33 @@ mysqli_query($conn, $update_last_seen);
 $active_conversation_id = isset($_GET['conversation_id']) ? intval($_GET['conversation_id']) : 0;
 
 // Fetch user's conversations
-// Replace the conversations query with this improved version
-$conversations_query = "SELECT c.*, 
+// Replace your conversations query with this:
+$conversations_query = "SELECT DISTINCT c.*, 
                         (SELECT message FROM messages WHERE conversation_id = c.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message,
                         (SELECT created_at FROM messages WHERE conversation_id = c.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message_time,
                         (SELECT COUNT(*) FROM messages WHERE conversation_id = c.conversation_id AND is_read = 0 AND sender_id != $user_id) as unread_count
                         FROM conversations c
                         INNER JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
                         WHERE cp.user_id = $user_id
-                        GROUP BY c.conversation_id
-                        ORDER BY last_message_time DESC";
+                        ORDER BY COALESCE(last_message_time, c.created_at) DESC";
                         
 $conversations_result = mysqli_query($conn, $conversations_query);
 $conversations = mysqli_fetch_all($conversations_result, MYSQLI_ASSOC);
 
 // Format conversation data
 foreach ($conversations as &$conv) {
+
+    if (!isset($conv['conversation_id'])) continue;
+
     if ($conv['is_group']) {
-        // For group chats, get participant count
         $count_query = "SELECT COUNT(*) as participant_count FROM conversation_participants WHERE conversation_id = {$conv['conversation_id']}";
         $count_result = mysqli_query($conn, $count_query);
-        $count_data = mysqli_fetch_assoc($count_result);
-        $conv['participants'] = $count_data['participant_count'];
+        if ($count_result) {
+            $count_data = mysqli_fetch_assoc($count_result);
+            $conv['participants'] = $count_data['participant_count'];
+        } else {
+            $conv['participants'] = 0;
+        }
     } else {
         // For individual chats, get the other participant's name
         $other_user_query = "SELECT u.user_id, u.fullname, u.profile_picture, u.last_seen 
@@ -150,12 +189,17 @@ foreach ($conversations as &$conv) {
                              WHERE cp.conversation_id = {$conv['conversation_id']} AND u.user_id != $user_id
                              LIMIT 1";
         $other_user_result = mysqli_query($conn, $other_user_query);
-        $other_user = mysqli_fetch_assoc($other_user_result);
         
-        if ($other_user) {
+        if ($other_user_result && mysqli_num_rows($other_user_result) > 0) {
+            $other_user = mysqli_fetch_assoc($other_user_result);
             $conv['name'] = $other_user['fullname'];
             $conv['profile_picture'] = $other_user['profile_picture'];
             $conv['last_seen'] = $other_user['last_seen'];
+        } else {
+            // Handle case where other participant doesn't exist or was deleted
+            $conv['name'] = 'Unknown User';
+            $conv['profile_picture'] = '';
+            $conv['last_seen'] = null;
         }
     }
     
@@ -190,7 +234,7 @@ if ($active_conversation_id > 0) {
     
     if (mysqli_num_rows($verify_result) > 0) {
         // Get conversation details
-        $conversation_query = "SELECT * FROM conversations WHERE conversation_id = $active_conversation_id";
+    $conversation_query = "SELECT * FROM conversations WHERE conversation_id = $active_conversation_id";
         $conversation_result = mysqli_query($conn, $conversation_query);
         $active_chat = mysqli_fetch_assoc($conversation_result);
         
@@ -235,12 +279,23 @@ $other_users = mysqli_fetch_all($users_result, MYSQLI_ASSOC);
 ?>
 
 <!-- show if there any error-->
+<!-- Replace your error display with this -->
 <?php if (isset($_SESSION['error'])): ?>
-<div class="error-message" style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #ffebee; color: #c62828; padding: 10px 20px; border-radius: 4px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-    <?= $_SESSION['error'] ?>
-    <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; color: #c62828; margin-left: 10px; cursor: pointer;">×</button>
+<div class="notification error" style="position: fixed; top: 80px; right: 20px; background: #ff5252; color: white; padding: 12px 20px; border-radius: 4px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 400px; display: flex; align-items: center;">
+    <i class="fas fa-exclamation-circle" style="margin-right: 10px;"></i>
+    <span><?= htmlspecialchars($_SESSION['error']) ?></span>
+    <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; color: white; margin-left: 15px; cursor: pointer; font-size: 18px;">×</button>
 </div>
 <?php unset($_SESSION['error']); ?>
+<?php endif; ?>
+
+<?php if (isset($_SESSION['success'])): ?>
+<div class="notification success" style="position: fixed; top: 80px; right: 20px; background: #4caf50; color: white; padding: 12px 20px; border-radius: 4px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 400px; display: flex; align-items: center;">
+    <i class="fas fa-check-circle" style="margin-right: 10px;"></i>
+    <span><?= htmlspecialchars($_SESSION['success']) ?></span>
+    <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; color: white; margin-left: 15px; cursor: pointer; font-size: 18px;">×</button>
+</div>
+<?php unset($_SESSION['success']); ?>
 <?php endif; ?>
 <!--end  show if there any error-->
 
@@ -447,17 +502,19 @@ $other_users = mysqli_fetch_all($users_result, MYSQLI_ASSOC);
             </div>
             <?php endif; ?>
             
-            <form id="ajaxGroupForm">
+            <form method="POST" action="">
                 <div class="form-group">
                     <label for="conversation_title">Group Title:</label>
-                    <input type="text" id="conversation_title" name="title" placeholder="Enter group title" required>
+                    <input type="text" id="conversation_title" name="title" placeholder="Enter group title" required 
+                           value="<?= isset($_POST['title']) ? htmlspecialchars($_POST['title']) : '' ?>">
                 </div>
                 <div class="form-group">
                     <label>Select Participants (select at least one):</label>
                     <div class="users-list">
                         <?php foreach ($other_users as $user): ?>
                         <div class="user-checkbox">
-                            <input type="checkbox" name="user_ids[]" value="<?= $user['user_id'] ?>" id="user_<?= $user['user_id'] ?>">
+                            <input type="checkbox" name="user_ids[]" value="<?= $user['user_id'] ?>" id="user_<?= $user['user_id'] ?>"
+                                <?= (isset($_POST['user_ids']) && in_array($user['user_id'], $_POST['user_ids'])) ? 'checked' : '' ?>>
                             <label for="user_<?= $user['user_id'] ?>">
                                 <div class="avatar small <?= isUserOnline($user['last_seen']) ? 'online' : '' ?>">
                                     <?php if (!empty($user['profile_picture'])): ?>
@@ -474,7 +531,7 @@ $other_users = mysqli_fetch_all($users_result, MYSQLI_ASSOC);
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary close-modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Group</button>
+                    <button type="submit" name="create_conversation" class="btn btn-primary">Create Group</button>
                 </div>
             </form>
         </div>
@@ -1031,6 +1088,41 @@ $other_users = mysqli_fetch_all($users_result, MYSQLI_ASSOC);
     </style>
 
     <script>
+// Add this to your existing JavaScript
+let isSubmitting = false;
+
+// Prevent double form submissions
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function() {
+            if (isSubmitting) {
+                event.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            
+            // Disable submit buttons
+            const submitButtons = this.querySelectorAll('button[type="submit"]');
+            submitButtons.forEach(button => {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            });
+            
+            return true;
+        });
+    });
+    
+    // Auto-hide notifications after 5 seconds
+    setTimeout(() => {
+        const notifications = document.querySelectorAll('.notification');
+        notifications.forEach(notification => {
+            notification.style.display = 'none';
+        });
+    }, 5000);
+});
+
+
     document.addEventListener('DOMContentLoaded', function() {
         const messagesContainer = document.getElementById('messagesContainer');
         if (messagesContainer) {
@@ -1041,60 +1133,6 @@ $other_users = mysqli_fetch_all($users_result, MYSQLI_ASSOC);
         const newChatBtn = document.getElementById('newChatBtn');
         const newChatModal = document.getElementById('newChatModal');
         const closeModalButtons = document.querySelectorAll('.close-modal');
-        // AJAX group creation
-        const ajaxGroupForm = document.getElementById('ajaxGroupForm');
-        if (ajaxGroupForm) {
-            ajaxGroupForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(ajaxGroupForm);
-                // Show loading indicator
-                const submitBtn = ajaxGroupForm.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Creating...';
-                fetch('API/create_group.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Create Group';
-                    if (data.success) {
-                        window.location.href = 'charts.php?conversation_id=' + data.conversation_id;
-                    } else {
-                        // Show error
-                        let errorDiv = ajaxGroupForm.querySelector('.error-message');
-                        if (!errorDiv) {
-                            errorDiv = document.createElement('div');
-                            errorDiv.className = 'error-message';
-                            errorDiv.style.background = '#ffebee';
-                            errorDiv.style.color = '#c62828';
-                            errorDiv.style.padding = '10px';
-                            errorDiv.style.borderRadius = '4px';
-                            errorDiv.style.marginBottom = '15px';
-                            ajaxGroupForm.prepend(errorDiv);
-                        }
-                        errorDiv.textContent = data.error || 'Unknown error';
-                    }
-                })
-                .catch(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Create Group';
-                    let errorDiv = ajaxGroupForm.querySelector('.error-message');
-                    if (!errorDiv) {
-                        errorDiv = document.createElement('div');
-                        errorDiv.className = 'error-message';
-                        errorDiv.style.background = '#ffebee';
-                        errorDiv.style.color = '#c62828';
-                        errorDiv.style.padding = '10px';
-                        errorDiv.style.borderRadius = '4px';
-                        errorDiv.style.marginBottom = '15px';
-                        ajaxGroupForm.prepend(errorDiv);
-                    }
-                    errorDiv.textContent = 'Network error. Please try again.';
-                });
-            });
-        }
 
         // Delete conversation functionality
     const deleteButtons = document.querySelectorAll('.delete-conversation');
