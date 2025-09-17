@@ -2,6 +2,7 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+session_name('admin_session');
 session_start();
 
 // Check if stationary admin is logged in
@@ -9,9 +10,9 @@ if (!isset($_SESSION['stationary_admin_id'])) {
     header('Location: ../admin_login.php');
     exit();
 }
-
-// Database connection
 include("../connection.php");
+
+
 $stationary_id = $_SESSION['stationary_admin_id'];
 
 // Fetch shop details

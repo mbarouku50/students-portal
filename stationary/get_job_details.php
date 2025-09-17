@@ -1,11 +1,14 @@
 <?php
+session_name('admin_session');
 session_start();
-include("../connection.php");
 
 // Check if stationary admin is logged in
 if (!isset($_SESSION['stationary_admin_id'])) {
     die('<div class="alert alert-danger">Session expired. Please login again.</div>');
 }
+
+include("../connection.php");
+
 
 if (!isset($_GET['job_id']) || !is_numeric($_GET['job_id'])) {
     die('<div class="alert alert-danger">Invalid job ID specified.</div>');

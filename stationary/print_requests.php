@@ -1,12 +1,14 @@
 <?php
+session_name('admin_session');
 session_start();
-include("../connection.php");
 
 // Check if stationary admin is logged in
 if (!isset($_SESSION['stationary_admin_id'])) {
     header('Location: ../admin_login.php');
     exit();
 }
+include("../connection.php");
+
 
 $stationary_id = $_SESSION['stationary_admin_id'];
 

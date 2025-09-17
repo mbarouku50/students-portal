@@ -79,11 +79,19 @@ if ($user_activities) {
 }
 
 // Then get recent document uploads from the first table as example
-$doc_activities = $conn->query("SELECT file_name as title, uploaded_at as date FROM first_year_sem1_documents ORDER BY uploaded_at DESC LIMIT 2");
-if ($doc_activities) {
-    while ($row = $doc_activities->fetch_assoc()) {
-        $row['type'] = 'document';
-        $activities[] = $row;
+
+// Get recent document uploads from the first available document table
+$recent_docs_found = false;
+foreach ($document_tables as $table) {
+    $doc_activities = $conn->query("SELECT file_name as title, uploaded_at as date FROM $table ORDER BY uploaded_at DESC LIMIT 2");
+    if ($doc_activities && $doc_activities->num_rows > 0) {
+        while ($row = $doc_activities->fetch_assoc()) {
+            $row['type'] = 'document';
+            $activities[] = $row;
+            $recent_docs_found = true;
+        }
+        // Only take from the first table with results
+        break;
     }
 }
 
