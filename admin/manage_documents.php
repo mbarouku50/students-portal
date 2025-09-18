@@ -1,9 +1,15 @@
 <?php
+// Start session before any output
 session_name('admin_session');
 session_start();
-include("../connection.php");
-include("sidebar.php");
 
+include("../connection.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 // Get document type from URL if specified
 $doc_type = isset($_GET['type']) ? $_GET['type'] : '';
@@ -144,13 +150,19 @@ if (isset($_POST['delete_document'])) {
         :root {
             --primary: #4f46e5;
             --primary-light: #6366f1;
+            --primary-dark: #4338ca;
             --secondary: #10b981;
+            --secondary-dark: #0d9669;
             --dark: #1e293b;
             --light: #f8fafc;
             --gray: #64748b;
+            --gray-light: #e2e8f0;
             --border: #e2e8f0;
             --shadow: 0 1px 3px rgba(0,0,0,0.1);
             --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-xl: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
         }
         
         * {
@@ -161,12 +173,30 @@ if (isset($_POST['delete_document'])) {
         
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background-color: var(--light);
+            background-color: #f1f5f9;
             color: var(--dark);
             line-height: 1.6;
         }
         
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar styling */
+        .sidebar {
+            width: 280px;
+            background: var(--dark);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
         .main-content {
+            flex: 1;
             margin-left: 280px;
             padding: 2rem;
             transition: all 0.3s ease;
@@ -174,10 +204,15 @@ if (isset($_POST['delete_document'])) {
         
         .page-header {
             margin-bottom: 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
         
         .page-title {
-            font-size: 2.25rem;
+            font-size: 2rem;
             font-weight: 800;
             color: var(--dark);
             margin-bottom: 0.5rem;
@@ -191,9 +226,10 @@ if (isset($_POST['delete_document'])) {
             font-size: 1.1rem;
         }
         
+        /* Filters section */
         .filters-container {
             background: white;
-            border-radius: 0.75rem;
+            border-radius: var(--radius-lg);
             padding: 1.5rem;
             margin-bottom: 2rem;
             box-shadow: var(--shadow);
@@ -222,7 +258,7 @@ if (isset($_POST['delete_document'])) {
         .filter-select, .filter-input {
             padding: 0.75rem 1rem;
             border: 2px solid var(--border);
-            border-radius: 0.5rem;
+            border-radius: var(--radius);
             font-size: 1rem;
             background: white;
             transition: all 0.3s ease;
@@ -238,18 +274,21 @@ if (isset($_POST['delete_document'])) {
             display: flex;
             gap: 1rem;
             justify-content: flex-end;
+            flex-wrap: wrap;
         }
         
+        /* Buttons */
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: var(--radius);
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 0.95rem;
         }
         
         .btn-primary {
@@ -258,7 +297,7 @@ if (isset($_POST['delete_document'])) {
         }
         
         .btn-primary:hover {
-            background: var(--primary-light);
+            background: var(--primary-dark);
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
         }
@@ -270,7 +309,7 @@ if (isset($_POST['delete_document'])) {
         }
         
         .btn-secondary:hover {
-            background: #e2e8f0;
+            background: var(--gray-light);
         }
         
         .btn-danger {
@@ -282,6 +321,12 @@ if (isset($_POST['delete_document'])) {
             background: #dc2626;
         }
         
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Documents grid */
         .documents-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -290,16 +335,18 @@ if (isset($_POST['delete_document'])) {
         
         .document-card {
             background: white;
-            border-radius: 0.75rem;
+            border-radius: var(--radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow);
             transition: all 0.3s ease;
             border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
         }
         
         .document-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-xl);
         }
         
         .card-header {
@@ -326,6 +373,7 @@ if (isset($_POST['delete_document'])) {
             font-weight: 700;
             color: var(--dark);
             margin-bottom: 0.5rem;
+            line-height: 1.4;
         }
         
         .card-subtitle {
@@ -335,6 +383,7 @@ if (isset($_POST['delete_document'])) {
         
         .card-body {
             padding: 1.5rem;
+            flex: 1;
         }
         
         .doc-meta {
@@ -359,20 +408,23 @@ if (isset($_POST['delete_document'])) {
         .meta-value {
             font-weight: 600;
             color: var(--dark);
+            font-size: 0.95rem;
         }
         
         .card-description {
             color: var(--gray);
             margin-bottom: 1.5rem;
             line-height: 1.6;
+            font-size: 0.95rem;
         }
         
         .card-footer {
             padding: 1rem 1.5rem;
             border-top: 1px solid var(--border);
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             justify-content: flex-end;
+            flex-wrap: wrap;
         }
         
         .file-info {
@@ -381,6 +433,10 @@ if (isset($_POST['delete_document'])) {
             gap: 0.5rem;
             color: var(--gray);
             font-size: 0.875rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: var(--radius);
         }
         
         .no-documents {
@@ -388,6 +444,10 @@ if (isset($_POST['delete_document'])) {
             text-align: center;
             padding: 3rem;
             color: var(--gray);
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-top: 2rem;
         }
         
         .no-documents i {
@@ -396,9 +456,10 @@ if (isset($_POST['delete_document'])) {
             color: #cbd5e1;
         }
         
+        /* Alerts */
         .alert {
             padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
+            border-radius: var(--radius);
             margin-bottom: 1.5rem;
             font-weight: 500;
             display: flex;
@@ -418,6 +479,7 @@ if (isset($_POST['delete_document'])) {
             border: 1px solid rgba(239, 68, 68, 0.2);
         }
         
+        /* Stats bar */
         .stats-bar {
             display: flex;
             gap: 1.5rem;
@@ -428,11 +490,17 @@ if (isset($_POST['delete_document'])) {
         .stat-card {
             background: white;
             padding: 1.5rem;
-            border-radius: 0.75rem;
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
             flex: 1;
             min-width: 200px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
         }
         
         .stat-value {
@@ -445,45 +513,10 @@ if (isset($_POST['delete_document'])) {
         .stat-label {
             color: var(--gray);
             font-weight: 600;
+            font-size: 0.95rem;
         }
         
-        @media (max-width: 1200px) {
-            .main-content {
-                margin-left: 0;
-                padding: 1.5rem;
-            }
-            
-            .documents-grid {
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .filter-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .filter-actions {
-                flex-direction: column;
-            }
-            
-            .page-title {
-                font-size: 1.75rem;
-            }
-            
-            .documents-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .card-footer {
-                flex-direction: column;
-            }
-            
-            .stats-bar {
-                flex-direction: column;
-            }
-        }
-        
+        /* Document types grid */
         .doc-types-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -494,7 +527,7 @@ if (isset($_POST['delete_document'])) {
         .doc-type-card {
             background: white;
             padding: 2rem;
-            border-radius: 0.75rem;
+            border-radius: var(--radius-lg);
             text-align: center;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
@@ -506,7 +539,7 @@ if (isset($_POST['delete_document'])) {
         
         .doc-type-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-xl);
             border-color: var(--primary);
         }
         
@@ -538,212 +571,493 @@ if (isset($_POST['delete_document'])) {
             color: var(--gray);
             line-height: 1.6;
         }
+        
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+        }
+        
+        /* Mobile overlay when sidebar is active */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+        
+        /* Responsive design for tablets */
+        @media (max-width: 1199px) and (min-width: 768px) {
+            .sidebar {
+                width: 240px;
+            }
+            
+            .main-content {
+                margin-left: 240px;
+                padding: 1.5rem;
+            }
+            
+            .documents-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+            
+            .doc-types-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .filter-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stat-card {
+                min-width: calc(50% - 0.75rem);
+            }
+            
+            .card-footer {
+                flex-direction: column;
+            }
+            
+            .card-footer .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Responsive design for mobile */
+        @media (max-width: 767px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+            
+            .menu-toggle {
+                display: flex;
+            }
+            
+            .documents-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .doc-types-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            .doc-type-card {
+                padding: 1.5rem;
+            }
+            
+            .doc-type-card i {
+                font-size: 2rem;
+            }
+            
+            .filter-row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .filters-container {
+                padding: 1rem;
+            }
+            
+            .filter-actions {
+                flex-direction: column;
+            }
+            
+            .filter-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .stats-bar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .stat-card {
+                min-width: 100%;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-top: 3rem;
+            }
+            
+            .page-title {
+                font-size: 1.75rem;
+            }
+            
+            .doc-meta {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-footer {
+                flex-direction: column;
+            }
+            
+            .card-footer .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            .doc-types-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .stat-card {
+                padding: 1rem;
+            }
+            
+            .stat-value {
+                font-size: 1.75rem;
+            }
+            
+            .document-card {
+                margin-bottom: 1rem;
+            }
+            
+            .card-header, .card-body, .card-footer {
+                padding: 1rem;
+            }
+        }
+        
+        /* Extra small devices */
+        @media (max-width: 360px) {
+            .main-content {
+                padding: 0.75rem;
+            }
+            
+            .doc-type-card {
+                padding: 1rem;
+            }
+            
+            .doc-type-card h3 {
+                font-size: 1.1rem;
+            }
+            
+            .filter-select, .filter-input {
+                padding: 0.6rem 0.8rem;
+            }
+            
+            .btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+        /* ...existing code... */
+
+/* ...existing code... */
+
+/* Responsive design for tablets */
+@media (max-width: 1199px) and (min-width: 768px) {
+    .sidebar {
+        width: 200px;
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+        transform: none;
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 200px;
+        padding: 1rem;
+    }
+
+    .documents-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .doc-types-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .filter-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stat-card {
+        min-width: 150px;
+        padding: 1rem;
+    }
+
+    .card-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .card-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* ...existing code... */
     </style>
 </head>
 <body>
-    <?php include('sidebar.php'); ?>
+    <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
     
-    <main class="main-content">
-        <div class="page-header">
-            <h1 class="page-title">Manage Documents</h1>
-            <p class="page-subtitle">View, manage, and organize all uploaded documents</p>
-        </div>
+    <div class="container">
+        <?php include('sidebar.php'); ?>
         
-        <?php if (isset($success_message)): ?>
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (isset($error_message)): ?>
-            <div class="alert alert-error">
-                <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Document Types Grid -->
-        <div class="doc-types-grid">
-            <?php foreach ($valid_types as $type_key => $type_info): ?>
-                <a href="category_<?php echo $type_key; ?>.php" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
-                    <i class="fas <?php echo $type_info['icon']; ?>"></i>
-                    <h3><?php echo $type_info['name']; ?></h3>
-                    <p>
-                        <?php 
-                        $count = 0;
-                        foreach ($all_documents as $doc) {
-                            if ($doc['doc_type'] === $type_key) $count++;
-                        }
-                        echo $count . ' document' . ($count !== 1 ? 's' : '');
-                        ?>
-                    </p>
-                </a>
-            <?php endforeach; ?>
-        </div>
-        
-        <!-- Statistics Bar -->
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-value"><?php echo count($all_documents); ?></div>
-                <div class="stat-label">Total Documents</div>
+        <div class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Manage Documents</h1>
+                    <p class="page-subtitle">View, manage, and organize all uploaded documents</p>
+                </div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-value"><?php echo count($courses); ?></div>
-                <div class="stat-label">Available Courses</div>
+            <?php if (isset($success_message)): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($error_message)): ?>
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Document Types Grid -->
+            <div class="doc-types-grid">
+                <?php foreach ($valid_types as $type_key => $type_info): ?>
+                    <a href="manage_documents.php?type=<?php echo $type_key; ?>" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
+                        <i class="fas <?php echo $type_info['icon']; ?>"></i>
+                        <h3><?php echo $type_info['name']; ?></h3>
+                        <p>
+                            <?php 
+                            $count = 0;
+                            foreach ($all_documents as $doc) {
+                                if ($doc['doc_type'] === $type_key) $count++;
+                            }
+                            echo $count . ' document' . ($count !== 1 ? 's' : '');
+                            ?>
+                        </p>
+                    </a>
+                <?php endforeach; ?>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-value">8</div>
-                <div class="stat-label">Document Types</div>
-            </div>
-        </div>
-        
-        <!-- Filters -->
-        <div class="filters-container">
-            <form method="GET" action="manage_documents.php">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label class="filter-label">Document Type</label>
-                        <select name="type" class="filter-select">
-                            <option value="">All Types</option>
-                            <?php foreach ($valid_types as $type_key => $type_info): ?>
-                                <option value="<?php echo $type_key; ?>" <?php echo $doc_type === $type_key ? 'selected' : ''; ?>>
-                                    <?php echo $type_info['name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Course</label>
-                        <select name="course_id" class="filter-select">
-                            <option value="">All Courses</option>
-                            <?php foreach ($courses as $course): ?>
-                                <option value="<?php echo $course['course_id']; ?>" <?php echo $course_id == $course['course_id'] ? 'selected' : ''; ?>>
-                                    <?php echo $course['course_code'] . ' - ' . $course['course_name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Semester</label>
-                        <select name="semester" class="filter-select">
-                            <option value="">All Semesters</option>
-                            <option value="1" <?php echo $semester === '1' ? 'selected' : ''; ?>>Semester 1</option>
-                            <option value="2" <?php echo $semester === '2' ? 'selected' : ''; ?>>Semester 2</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Level</label>
-                        <select name="level" class="filter-select">
-                            <option value="">All Levels</option>
-                            <option value="certificate" <?php echo $level === 'certificate' ? 'selected' : ''; ?>>Certificate</option>
-                            <option value="diploma1" <?php echo $level === 'diploma1' ? 'selected' : ''; ?>>Diploma 1</option>
-                            <option value="diploma2" <?php echo $level === 'diploma2' ? 'selected' : ''; ?>>Diploma 2</option>
-                            <option value="bachelor1" <?php echo $level === 'bachelor1' ? 'selected' : ''; ?>>Bachelor 1</option>
-                            <option value="bachelor2" <?php echo $level === 'bachelor2' ? 'selected' : ''; ?>>Bachelor 2</option>
-                            <option value="bachelor3" <?php echo $level === 'bachelor3' ? 'selected' : ''; ?>>Bachelor 3</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Semester</label>
-                        <select name="semester" class="filter-select">
-                            <option value="">All Semesters</option>
-                            <option value="1" <?php echo $semester === '1' ? 'selected' : ''; ?>>Semester 1</option>
-                            <option value="2" <?php echo $semester === '2' ? 'selected' : ''; ?>>Semester 2</option>
-                        </select>
-                    </div>
+            <!-- Statistics Bar -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo count($all_documents); ?></div>
+                    <div class="stat-label">Total Documents</div>
                 </div>
                 
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter"></i> Apply Filters
-                    </button>
-                    <a href="manage_documents.php" class="btn btn-secondary">
-                        <i class="fas fa-redo"></i> Clear Filters
-                    </a>
+                <div class="stat-card">
+                    <div class="stat-value"><?php echo count($courses); ?></div>
+                    <div class="stat-label">Available Courses</div>
                 </div>
-            </form>
-        </div>
-        
-        <!-- Documents Grid -->
-        <div class="documents-grid">
-            <?php if (empty($all_documents)): ?>
-                <div class="no-documents">
-                    <i class="fas fa-file-alt"></i>
-                    <h3>No documents found</h3>
-                    <p>Try adjusting your filters or upload new documents.</p>
+                
+                <div class="stat-card">
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">Document Types</div>
                 </div>
-            <?php else: ?>
-                <?php foreach ($all_documents as $document): ?>
-                    <div class="document-card">
-                        <div class="card-header">
-                            <div class="doc-type-badge">
-                                <i class="fas <?php echo $valid_types[$document['doc_type']]['icon']; ?>"></i>
-                                <?php echo $valid_types[$document['doc_type']]['name']; ?>
-                            </div>
-                            <h3 class="card-title"><?php echo htmlspecialchars($document['title']); ?></h3>
-                            <p class="card-subtitle">
-                                <?php echo htmlspecialchars($document['course_code'] . ' - ' . $document['course_name']); ?>
-                            </p>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filters-container">
+                <form method="GET" action="manage_documents.php">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label class="filter-label">Document Type</label>
+                            <select name="type" class="filter-select">
+                                <option value="">All Types</option>
+                                <?php foreach ($valid_types as $type_key => $type_info): ?>
+                                    <option value="<?php echo $type_key; ?>" <?php echo $doc_type === $type_key ? 'selected' : ''; ?>>
+                                        <?php echo $type_info['name']; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         
-                        <div class="card-body">
-                            <div class="doc-meta">
-                                <div class="meta-item">
-                                    <span class="meta-label">Semester</span>
-                                    <span class="meta-value">Semester <?php echo $document['semester']; ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Level</span>
-                                    <span class="meta-value"><?php echo ucfirst($document['level']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Uploaded</span>
-                                    <span class="meta-value"><?php echo date('M j, Y', strtotime($document['uploaded_at'])); ?></span>
-                                </div>
-                            </div>
-                            
-                            <?php if (!empty($document['description'])): ?>
-                                <p class="card-description"><?php echo htmlspecialchars($document['description']); ?></p>
-                            <?php endif; ?>
-                            
-                            <div class="file-info">
-                                <i class="fas fa-file"></i>
-                                <?php echo htmlspecialchars($document['file_name']); ?>
-                                (<?php echo round($document['file_size'] / 1024 / 1024, 2); ?> MB)
-                            </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Course</label>
+                            <select name="course_id" class="filter-select">
+                                <option value="">All Courses</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['course_id']; ?>" <?php echo $course_id == $course['course_id'] ? 'selected' : ''; ?>>
+                                        <?php echo $course['course_code'] . ' - ' . $course['course_name']; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         
-                        <div class="card-footer">
-                            <!-- Fixed file paths - added admin/ prefix -->
-                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
-                               class="btn btn-primary" download>
-                                <i class="fas fa-download"></i> Download
-                            </a>
-                            <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
-                               class="btn btn-secondary" target="_blank">
-                                <i class="fas fa-eye"></i> View
-                            </a>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="doc_id" value="<?php echo $document['doc_id']; ?>">
-                                <input type="hidden" name="source_table" value="<?php echo $document['source_table']; ?>">
-                                <input type="hidden" name="file_path" value="<?php echo htmlspecialchars($document['file_path']); ?>">
-                                <button type="submit" name="delete_document" class="btn btn-danger" 
-                                        onclick="return confirm('Are you sure you want to delete this document?')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </form>
+                        <div class="filter-group">
+                            <label class="filter-label">Semester</label>
+                            <select name="semester" class="filter-select">
+                                <option value="">All Semesters</option>
+                                <option value="1" <?php echo $semester === '1' ? 'selected' : ''; ?>>Semester 1</option>
+                                <option value="2" <?php echo $semester === '2' ? 'selected' : ''; ?>>Semester 2</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Level</label>
+                            <select name="level" class="filter-select">
+                                <option value="">All Levels</option>
+                                <option value="certificate" <?php echo $level === 'certificate' ? 'selected' : ''; ?>>Certificate</option>
+                                <option value="diploma1" <?php echo $level === 'diploma1' ? 'selected' : ''; ?>>Diploma 1</option>
+                                <option value="diploma2" <?php echo $level === 'diploma2' ? 'selected' : ''; ?>>Diploma 2</option>
+                                <option value="bachelor1" <?php echo $level === 'bachelor1' ? 'selected' : ''; ?>>Bachelor 1</option>
+                                <option value="bachelor2" <?php echo $level === 'bachelor2' ? 'selected' : ''; ?>>Bachelor 2</option>
+                                <option value="bachelor3" <?php echo $level === 'bachelor3' ? 'selected' : ''; ?>>Bachelor 3</option>
+                            </select>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <a href="manage_documents.php" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Documents Grid -->
+            <div class="documents-grid">
+                <?php if (empty($all_documents)): ?>
+                    <div class="no-documents">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No documents found</h3>
+                        <p>Try adjusting your filters or upload new documents.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($all_documents as $document): ?>
+                        <div class="document-card">
+                            <div class="card-header">
+                                <div class="doc-type-badge">
+                                    <i class="fas <?php echo $valid_types[$document['doc_type']]['icon']; ?>"></i>
+                                    <?php echo $valid_types[$document['doc_type']]['name']; ?>
+                                </div>
+                                <h3 class="card-title"><?php echo htmlspecialchars($document['title']); ?></h3>
+                                <p class="card-subtitle">
+                                    <?php echo htmlspecialchars($document['course_code'] . ' - ' . $document['course_name']); ?>
+                                </p>
+                            </div>
+                            
+                            <div class="card-body">
+                                <div class="doc-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Semester</span>
+                                        <span class="meta-value">Semester <?php echo $document['semester']; ?></span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Level</span>
+                                        <span class="meta-value"><?php echo ucfirst($document['level']); ?></span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Uploaded</span>
+                                        <span class="meta-value"><?php echo date('M j, Y', strtotime($document['uploaded_at'])); ?></span>
+                                    </div>
+                                </div>
+                                
+                                <?php if (!empty($document['description'])): ?>
+                                    <p class="card-description"><?php echo htmlspecialchars($document['description']); ?></p>
+                                <?php endif; ?>
+                                
+                                <div class="file-info">
+                                    <i class="fas fa-file"></i>
+                                    <?php echo htmlspecialchars($document['file_name']); ?>
+                                    (<?php echo round($document['file_size'] / 1024 / 1024, 2); ?> MB)
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer">
+                                <!-- Fixed file paths - added admin/ prefix -->
+                                <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
+                                   class="btn btn-primary btn-sm" download>
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                                <a href="../admin/<?php echo htmlspecialchars($document['file_path']); ?>" 
+                                   class="btn btn-secondary btn-sm" target="_blank">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="doc_id" value="<?php echo $document['doc_id']; ?>">
+                                    <input type="hidden" name="source_table" value="<?php echo $document['source_table']; ?>">
+                                    <input type="hidden" name="file_path" value="<?php echo htmlspecialchars($document['file_path']); ?>">
+                                    <button type="submit" name="delete_document" class="btn btn-danger btn-sm" 
+                                            onclick="return confirm('Are you sure you want to delete this document?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
-    </main>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
 
     <script>
+        // Mobile menu toggle functionality
+        const menuToggle = document.getElementById('menuToggle');
+        const overlay = document.getElementById('overlay');
+        const sidebar = document.querySelector('.sidebar');
+        
+        // Toggle sidebar on menu button click
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+        
+        // Close sidebar when clicking on overlay
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+        
         // Add active class to clicked doc type cards
         document.querySelectorAll('.doc-type-card').forEach(card => {
             card.addEventListener('click', function() {
@@ -760,6 +1074,23 @@ if (isset($_POST['delete_document'])) {
                 this.form.submit();
             });
         });
+        
+        // Handle window resize to show/hide menu button
+        function handleResize() {
+            if (window.innerWidth < 768) {
+                menuToggle.style.display = 'flex';
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            } else {
+                menuToggle.style.display = 'none';
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+        
+        // Initial call and event listener for resize
+        handleResize();
+        window.addEventListener('resize', handleResize);
     </script>
 </body>
 </html>

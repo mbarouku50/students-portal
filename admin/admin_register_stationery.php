@@ -1,11 +1,16 @@
 <?php
+// Start session before any output
 session_name('admin_session');
 session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-// ...existing code...
-include '../connection.php';
+
+include("../connection.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
 $message = '';
 $formData = [
     'name' => '', 'location' => '', 'phone' => '', 'email' => '', 

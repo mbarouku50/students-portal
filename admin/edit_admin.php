@@ -2,8 +2,17 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+// Start session before any output
+session_name('admin_session');
+session_start();
+
 include("../connection.php");
-include("sidebar.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 $admin_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 

@@ -1,3 +1,109 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+// Start session before any output
+session_name('admin_session');
+session_start();
+
+include("../connection.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: ../admin_login.php");
+    exit();
+}
+
+// Initialize variables
+$success = '';
+$error = '';
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        // Begin transaction
+        $conn->begin_transaction();
+
+        // Handle logo upload
+        if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            $logoTmpPath = $_FILES['site_logo']['tmp_name'];
+            $logoName = uniqid('logo_') . '.' . pathinfo($_FILES['site_logo']['name'], PATHINFO_EXTENSION);
+            $logoDest = '../uploads/' . $logoName;
+            if (move_uploaded_file($logoTmpPath, $logoDest)) {
+                $_POST['site_logo_path'] = $logoDest;
+            }
+        }
+
+        // Handle favicon upload
+        if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] === UPLOAD_ERR_OK) {
+            $faviconTmpPath = $_FILES['favicon']['tmp_name'];
+            $faviconName = uniqid('favicon_') . '.' . pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION);
+            $faviconDest = '../uploads/' . $faviconName;
+            if (move_uploaded_file($faviconTmpPath, $faviconDest)) {
+                $_POST['favicon_path'] = $faviconDest;
+            }
+        }
+
+        // Loop through all POST values and save them
+        foreach ($_POST as $key => $value) {
+            // Skip the submit button and other non-setting fields
+            if ($key === 'submit' || substr($key, 0, 2) === '__') continue;
+
+            // Determine category based on field name patterns
+            $category = 'general';
+            if (strpos($key, 'theme_') === 0 || strpos($key, 'enable_') === 0) $category = 'appearance';
+            if (strpos($key, 'notify_') === 0 || strpos($key, 'alert_') === 0) $category = 'notifications';
+            if (strpos($key, '2fa_') === 0 || strpos($key, 'password_') === 0 ||
+                strpos($key, 'login_') === 0 || strpos($key, 'max_') === 0 ||
+                strpos($key, 'lockout_') === 0) $category = 'security';
+            if (strpos($key, 'backup_') === 0 || strpos($key, 'api_') === 0 ||
+                strpos($key, 'cache_') === 0 || strpos($key, 'log_') === 0 ||
+                strpos($key, 'enable_') === 0) $category = 'advanced';
+
+            // Check if setting exists
+            $stmt = $conn->prepare("SELECT id FROM system_settings WHERE setting_key = ?");
+            $stmt->bind_param("s", $key);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows > 0) {
+                // Update existing setting
+                $stmt = $conn->prepare("UPDATE system_settings SET setting_value = ?, setting_category = ? WHERE setting_key = ?");
+                $stmt->bind_param("sss", $value, $category, $key);
+            } else {
+                // Insert new setting
+                $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value, setting_category) VALUES (?, ?, ?)");
+                $stmt->bind_param("sss", $key, $value, $category);
+            }
+
+            $stmt->execute();
+            $stmt->close();
+        }
+
+        // Commit transaction
+        $conn->commit();
+        $success = "Settings saved successfully!";
+    } catch (Exception $e) {
+        // Rollback on error
+        $conn->rollback();
+        $error = "Error saving settings: " . $e->getMessage();
+    }
+}
+
+// Load all settings from database
+$settings = [];
+$result = $conn->query("SELECT setting_key, setting_value FROM system_settings");
+while ($row = $result->fetch_assoc()) {
+    $settings[$row['setting_key']] = $row['setting_value'];
+}
+
+// Function to get setting value with default fallback
+function getSetting($key, $default = '') {
+    global $settings;
+    return isset($settings[$key]) ? $settings[$key] : $default;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -173,6 +279,19 @@
             gap: 0.5rem;
         }
         
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -255,22 +374,6 @@
             height: 30px;
             border-radius: 6px;
             border: 2px solid var(--border);
-        }
-        
-        .alert {
-            padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
         }
         
         .system-status {
@@ -480,9 +583,15 @@
             </a>
         </div>
         
-        <?php if (isset($success) && $success): ?>
-            <div class="success">
+        <?php if ($success): ?>
+            <form method="POST" enctype="multipart/form-data">
                 <i class="fas fa-check-circle"></i> <?php echo $success; ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($error): ?>
+            <div class="alert-error">
+                <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
             </div>
         <?php endif; ?>
         
@@ -513,31 +622,7 @@
                                     Site Name
                                     <span class="info">(Displayed in browser tab)</span>
                                 </label>
-                                <input type="text" class="form-input" id="site_name" name="site_name" value="CBE Doc's Store" placeholder="Enter your site name">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="admin_email">
-                                    Admin Profile
-                                    <span class="info">(For system notifications)</span>
-                                </label>
-                                <input type="text" class="form-input" id="admin_profile" name="admin_profile" value="admin@example.com" placeholder="Enter admin profile">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label" for="admin_email">
-                                    Admin Email
-                                    <span class="info">(For system notifications)</span>
-                                </label>
-                                <input type="email" class="form-input" id="admin_email" name="admin_email" value="admin@example.com" placeholder="Enter admin email">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="admin_password">
-                                    Admin Password
-                                    <span class="info">(For system notifications)</span>
-                                </label>
-                                <input type="password" class="form-input" id="admin_password" name="admin_password" placeholder="Enter admin password">
+                                <input type="text" class="form-input" id="site_name" name="site_name" value="<?php echo htmlspecialchars(getSetting('site_name', 'CBE Doc\'s Store')); ?>" placeholder="Enter your site name">
                             </div>
                             
                             <div class="form-group">
@@ -545,10 +630,10 @@
                                     Timezone
                                 </label>
                                 <select class="form-select" id="timezone" name="timezone">
-                                    <option value="UTC">UTC</option>
-                                    <option value="EST" selected>Eastern Time (EST)</option>
-                                    <option value="PST">Pacific Time (PST)</option>
-                                    <option value="CST">Central Time (CST)</option>
+                                    <option value="UTC" <?php echo getSetting('timezone', 'EST') === 'UTC' ? 'selected' : ''; ?>>UTC</option>
+                                    <option value="EST" <?php echo getSetting('timezone', 'EST') === 'EST' ? 'selected' : ''; ?>>Eastern Time (EST)</option>
+                                    <option value="PST" <?php echo getSetting('timezone', 'EST') === 'PST' ? 'selected' : ''; ?>>Pacific Time (PST)</option>
+                                    <option value="CST" <?php echo getSetting('timezone', 'EST') === 'CST' ? 'selected' : ''; ?>>Central Time (CST)</option>
                                 </select>
                             </div>
                             
@@ -557,9 +642,9 @@
                                     Date Format
                                 </label>
                                 <select class="form-select" id="date_format" name="date_format">
-                                    <option value="Y-m-d">YYYY-MM-DD</option>
-                                    <option value="m/d/Y" selected>MM/DD/YYYY</option>
-                                    <option value="d/m/Y">DD/MM/YYYY</option>
+                                    <option value="Y-m-d" <?php echo getSetting('date_format', 'm/d/Y') === 'Y-m-d' ? 'selected' : ''; ?>>YYYY-MM-DD</option>
+                                    <option value="m/d/Y" <?php echo getSetting('date_format', 'm/d/Y') === 'm/d/Y' ? 'selected' : ''; ?>>MM/DD/YYYY</option>
+                                    <option value="d/m/Y" <?php echo getSetting('date_format', 'm/d/Y') === 'd/m/Y' ? 'selected' : ''; ?>>DD/MM/YYYY</option>
                                 </select>
                             </div>
                         </div>
@@ -573,9 +658,14 @@
                                 <h2 class="card-title">System Status</h2>
                             </div>
                             
-                            <div class="system-status status-active">
+                            <?php
+                            $systemMode = getSetting('system_mode', 'live');
+                            $statusClass = $systemMode === 'live' ? 'status-active' : ($systemMode === 'maintenance' ? 'status-maintenance' : 'status-inactive');
+                            $statusText = $systemMode === 'live' ? 'System is running normally' : ($systemMode === 'maintenance' ? 'System is in maintenance mode' : 'System is in testing mode');
+                            ?>
+                            <div class="system-status <?php echo $statusClass; ?>">
                                 <i class="fas fa-circle-check"></i>
-                                <span>System is running normally</span>
+                                <span><?php echo $statusText; ?></span>
                             </div>
                             
                             <div class="form-group">
@@ -584,15 +674,15 @@
                                 </label>
                                 <div class="radio-group">
                                     <div class="radio-option">
-                                        <input type="radio" id="mode_live" name="system_mode" value="live" checked>
+                                        <input type="radio" id="mode_live" name="system_mode" value="live" <?php echo $systemMode === 'live' ? 'checked' : ''; ?>>
                                         <label for="mode_live">Live Mode</label>
                                     </div>
                                     <div class="radio-option">
-                                        <input type="radio" id="mode_maintenance" name="system_mode" value="maintenance">
+                                        <input type="radio" id="mode_maintenance" name="system_mode" value="maintenance" <?php echo $systemMode === 'maintenance' ? 'checked' : ''; ?>>
                                         <label for="mode_maintenance">Maintenance Mode</label>
                                     </div>
                                     <div class="radio-option">
-                                        <input type="radio" id="mode_testing" name="system_mode" value="testing">
+                                        <input type="radio" id="mode_testing" name="system_mode" value="testing" <?php echo $systemMode === 'testing' ? 'checked' : ''; ?>>
                                         <label for="mode_testing">Testing Mode</label>
                                     </div>
                                 </div>
@@ -603,7 +693,7 @@
                                     Maintenance Message
                                     <span class="info">(Shown when in maintenance mode)</span>
                                 </label>
-                                <textarea class="form-textarea" id="maintenance_message" name="maintenance_message" placeholder="We'll be back soon!">Our site is currently under maintenance. Please check back later.</textarea>
+                                <textarea class="form-textarea" id="maintenance_message" name="maintenance_message" placeholder="We'll be back soon!"><?php echo htmlspecialchars(getSetting('maintenance_message', 'Our site is currently under maintenance. Please check back later.')); ?></textarea>
                             </div>
                         </div>
                     </div>
@@ -626,8 +716,8 @@
                                     Theme Color
                                 </label>
                                 <div class="color-picker">
-                                    <div class="color-preview" style="background-color: #4f46e5;"></div>
-                                    <input type="color" class="form-input" id="theme_color" name="theme_color" value="#4f46e5" style="width: 100px; height: 40px; padding: 0;">
+                                    <div class="color-preview" style="background-color: <?php echo getSetting('theme_color', '#4f46e5'); ?>;"></div>
+                                    <input type="color" class="form-input" id="theme_color" name="theme_color" value="<?php echo getSetting('theme_color', '#4f46e5'); ?>" style="width: 100px; height: 40px; padding: 0;">
                                 </div>
                             </div>
                             
@@ -636,26 +726,26 @@
                                     Default Theme Mode
                                 </label>
                                 <select class="form-select" id="theme_mode" name="theme_mode">
-                                    <option value="light">Light Mode</option>
-                                    <option value="dark">Dark Mode</option>
-                                    <option value="auto" selected>Auto (System Preference)</option>
+                                    <option value="light" <?php echo getSetting('theme_mode', 'auto') === 'light' ? 'selected' : ''; ?>>Light Mode</option>
+                                    <option value="dark" <?php echo getSetting('theme_mode', 'auto') === 'dark' ? 'selected' : ''; ?>>Dark Mode</option>
+                                    <option value="auto" <?php echo getSetting('theme_mode', 'auto') === 'auto' ? 'selected' : ''; ?>>Auto (System Preference)</option>
                                 </select>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="enable_animations" name="enable_animations" checked>
+                                <input type="checkbox" id="enable_animations" name="enable_animations" value="1" <?php echo getSetting('enable_animations', '1') ? 'checked' : ''; ?>>
                                 <label for="enable_animations">Enable Animations</label>
                             </div>
                             
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="enable_shadows" name="enable_shadows" checked>
+                                    <input type="file" id="site_logo" name="site_logo" class="file-upload-input" accept="image/*">
+                                <input type="checkbox" id="enable_shadows" name="enable_shadows" value="1" <?php echo getSetting('enable_shadows', '1') ? 'checked' : ''; ?>>
                                 <label for="enable_shadows">Enable Shadow Effects</label>
                             </div>
                         </div>
                         
-                        <!-- Logo & Favicon -->
-                        <div class="settings-card">
-                            <div class="card-header">
+                                <div class="file-preview">
+                                    <img src="<?php echo isset($settings['site_logo_path']) ? $settings['site_logo_path'] : 'https://via.placeholder.com/200x80/4f46e5/ffffff?text=CBE+Doc\'s+Store'; ?>" alt="Current logo" style="width: 100%;">
+                                </div>
                                 <div class="card-icon">
                                     <i class="fas fa-image"></i>
                                 </div>
@@ -663,15 +753,15 @@
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">
+                                    <input type="file" id="favicon" name="favicon" class="file-upload-input" accept="image/*">
                                     Site Logo
                                 </label>
                                 <div class="file-upload">
                                     <input type="file" id="site_logo" class="file-upload-input" accept="image/*">
                                     <label for="site_logo" class="file-upload-label">
-                                        <i class="fas fa-upload"></i>
-                                        <span>Choose logo file...</span>
-                                    </label>
+                                <div class="file-preview">
+                                    <img src="<?php echo isset($settings['favicon_path']) ? $settings['favicon_path'] : 'https://via.placeholder.com/32/4f46e5/ffffff?text=C'; ?>" alt="Current favicon" style="width: 32px; height: 32px;">
+                                </div>
                                 </div>
                                 <div class="file-preview">
                                     <img src="https://via.placeholder.com/200x80/4f46e5/ffffff?text=CBE+Doc's+Store" alt="Current logo" style="width: 100%;">
@@ -710,22 +800,22 @@
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="notify_new_user" name="notify_new_user" checked>
+                                <input type="checkbox" id="notify_new_user" name="notify_new_user" value="1" <?php echo getSetting('notify_new_user', '1') ? 'checked' : ''; ?>>
                                 <label for="notify_new_user">Notify on new user registration</label>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="notify_order" name="notify_order" checked>
+                                <input type="checkbox" id="notify_order" name="notify_order" value="1" <?php echo getSetting('notify_order', '1') ? 'checked' : ''; ?>>
                                 <label for="notify_order">Notify on new orders</label>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="notify_error" name="notify_error" checked>
+                                <input type="checkbox" id="notify_error" name="notify_error" value="1" <?php echo getSetting('notify_error', '1') ? 'checked' : ''; ?>>
                                 <label for="notify_error">Notify on system errors</label>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="notify_update" name="notify_update">
+                                <input type="checkbox" id="notify_update" name="notify_update" value="1" <?php echo getSetting('notify_update', '0') ? 'checked' : ''; ?>>
                                 <label for="notify_update">Notify on available updates</label>
                             </div>
                             
@@ -733,7 +823,7 @@
                                 <label class="form-label" for="notification_email">
                                     Notification Email Address
                                 </label>
-                                <input type="email" class="form-input" id="notification_email" name="notification_email" value="notifications@example.com" placeholder="Enter notification email">
+                                <input type="email" class="form-input" id="notification_email" name="notification_email" value="<?php echo htmlspecialchars(getSetting('notification_email', 'notifications@example.com')); ?>" placeholder="Enter notification email">
                             </div>
                         </div>
                         
@@ -751,16 +841,17 @@
                                     Alert Sound
                                 </label>
                                 <div class="radio-group">
+                                    <?php $alertSound = getSetting('alert_sound', 'none'); ?>
                                     <div class="radio-option">
-                                        <input type="radio" id="sound_none" name="alert_sound" value="none" checked>
+                                        <input type="radio" id="sound_none" name="alert_sound" value="none" <?php echo $alertSound === 'none' ? 'checked' : ''; ?>>
                                         <label for="sound_none">None</label>
                                     </div>
                                     <div class="radio-option">
-                                        <input type="radio" id="sound_chime" name="alert_sound" value="chime">
+                                        <input type="radio" id="sound_chime" name="alert_sound" value="chime" <?php echo $alertSound === 'chime' ? 'checked' : ''; ?>>
                                         <label for="sound_chime">Chime</label>
                                     </div>
                                     <div class="radio-option">
-                                        <input type="radio" id="sound_beep" name="alert_sound" value="beep">
+                                        <input type="radio" id="sound_beep" name="alert_sound" value="beep" <?php echo $alertSound === 'beep' ? 'checked' : ''; ?>>
                                         <label for="sound_beep">Beep</label>
                                     </div>
                                 </div>
@@ -770,16 +861,16 @@
                                 <label class="form-label" for="alert_volume">
                                     Alert Volume
                                 </label>
-                                <input type="range" class="form-input" id="alert_volume" name="alert_volume" min="0" max="100" value="70" style="padding: 0;">
+                                <input type="range" class="form-input" id="alert_volume" name="alert_volume" min="0" max="100" value="<?php echo getSetting('alert_volume', '70'); ?>" style="padding: 0;">
                                 <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--gray);">
                                     <span>0%</span>
-                                    <span>70%</span>
+                                    <span><?php echo getSetting('alert_volume', '70'); ?>%</span>
                                     <span>100%</span>
                                 </div>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="desktop_notifications" name="desktop_notifications" checked>
+                                <input type="checkbox" id="desktop_notifications" name="desktop_notifications" value="1" <?php echo getSetting('desktop_notifications', '1') ? 'checked' : ''; ?>>
                                 <label for="desktop_notifications">Enable desktop notifications</label>
                             </div>
                         </div>
@@ -799,12 +890,12 @@
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="2fa_enabled" name="2fa_enabled" checked>
+                                <input type="checkbox" id="2fa_enabled" name="2fa_enabled" value="1" <?php echo getSetting('2fa_enabled', '1') ? 'checked' : ''; ?>>
                                 <label for="2fa_enabled">Enable Two-Factor Authentication</label>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="login_attempts" name="login_attempts" checked>
+                                <input type="checkbox" id="login_attempts" name="login_attempts" value="1" <?php echo getSetting('login_attempts', '1') ? 'checked' : ''; ?>>
                                 <label for="login_attempts">Limit login attempts</label>
                             </div>
                             
@@ -812,14 +903,14 @@
                                 <label class="form-label" for="max_login_attempts">
                                     Maximum Login Attempts
                                 </label>
-                                <input type="number" class="form-input" id="max_login_attempts" name="max_login_attempts" value="5" min="3" max="10">
+                                <input type="number" class="form-input" id="max_login_attempts" name="max_login_attempts" value="<?php echo getSetting('max_login_attempts', '5'); ?>" min="3" max="10">
                             </div>
                             
                             <div class="form-group">
                                 <label class="form-label" for="lockout_time">
                                     Lockout Time (minutes)
                                 </label>
-                                <input type="number" class="form-input" id="lockout_time" name="lockout_time" value="30" min="5" max="1440">
+                                <input type="number" class="form-input" id="lockout_time" name="lockout_time" value="<?php echo getSetting('lockout_time', '30'); ?>" min="5" max="1440">
                             </div>
                         </div>
                         
@@ -833,7 +924,7 @@
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="password_complexity" name="password_complexity" checked>
+                                <input type="checkbox" id="password_complexity" name="password_complexity" value="1" <?php echo getSetting('password_complexity', '1') ? 'checked' : ''; ?>>
                                 <label for="password_complexity">Require complex passwords</label>
                             </div>
                             
@@ -841,19 +932,19 @@
                                 <label class="form-label" for="min_password_length">
                                     Minimum Password Length
                                 </label>
-                                <input type="number" class="form-input" id="min_password_length" name="min_password_length" value="8" min="6" max="20">
+                                <input type="number" class="form-input" id="min_password_length" name="min_password_length" value="<?php echo getSetting('min_password_length', '8'); ?>" min="6" max="20">
                             </div>
                             
                             <div class="form-group">
                                 <label class="form-label" for="password_expiry">
                                     Password Expiry (days)
                                 </label>
-                                <input type="number" class="form-input" id="password_expiry" name="password_expiry" value="90" min="30" max="365">
+                                <input type="number" class="form-input" id="password_expiry" name="password_expiry" value="<?php echo getSetting('password_expiry', '90'); ?>" min="30" max="365">
                                 <span class="info">Set to 0 to disable password expiry</span>
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="prevent_reuse" name="prevent_reuse" checked>
+                                <input type="checkbox" id="prevent_reuse" name="prevent_reuse" value="1" <?php echo getSetting('prevent_reuse', '1') ? 'checked' : ''; ?>>
                                 <label for="prevent_reuse">Prevent password reuse</label>
                             </div>
                         </div>
@@ -877,10 +968,11 @@
                                     Automatic Backup Schedule
                                 </label>
                                 <select class="form-select" id="backup_schedule" name="backup_schedule">
-                                    <option value="none">No automatic backups</option>
-                                    <option value="daily" selected>Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
+                                    <?php $backupSchedule = getSetting('backup_schedule', 'daily'); ?>
+                                    <option value="none" <?php echo $backupSchedule === 'none' ? 'selected' : ''; ?>>No automatic backups</option>
+                                    <option value="daily" <?php echo $backupSchedule === 'daily' ? 'selected' : ''; ?>>Daily</option>
+                                    <option value="weekly" <?php echo $backupSchedule === 'weekly' ? 'selected' : ''; ?>>Weekly</option>
+                                    <option value="monthly" <?php echo $backupSchedule === 'monthly' ? 'selected' : ''; ?>>Monthly</option>
                                 </select>
                             </div>
                             
@@ -888,7 +980,7 @@
                                 <label class="form-label" for="backup_retention">
                                     Backup Retention (days)
                                 </label>
-                                <input type="number" class="form-input" id="backup_retention" name="backup_retention" value="30" min="7" max="365">
+                                <input type="number" class="form-input" id="backup_retention" name="backup_retention" value="<?php echo getSetting('backup_retention', '30'); ?>" min="7" max="365">
                             </div>
                             
                             <div class="form-actions">
@@ -907,17 +999,17 @@
                                     <label class="form-label" for="cache_duration">
                                         Cache Duration (minutes)
                                     </label>
-                                    <input type="number" class="form-input" id="cache_duration" name="cache_duration" value="60" min="0" max="1440">
+                                    <input type="number" class="form-input" id="cache_duration" name="cache_duration" value="<?php echo getSetting('cache_duration', '60'); ?>" min="0" max="1440">
                                     <span class="info">Set to 0 to disable caching</span>
                                 </div>
                                 
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="enable_gzip" name="enable_gzip" checked>
+                                    <input type="checkbox" id="enable_gzip" name="enable_gzip" value="1" <?php echo getSetting('enable_gzip', '1') ? 'checked' : ''; ?>>
                                     <label for="enable_gzip">Enable GZIP Compression</label>
                                 </div>
                                 
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="enable_logging" name="enable_logging" checked>
+                                    <input type="checkbox" id="enable_logging" name="enable_logging" value="1" <?php echo getSetting('enable_logging', '1') ? 'checked' : ''; ?>>
                                     <label for="enable_logging">Enable System Logging</label>
                                 </div>
                                 
@@ -925,7 +1017,7 @@
                                     <label class="form-label" for="log_retention">
                                         Log Retention (days)
                                     </label>
-                                    <input type="number" class="form-input" id="log_retention" name="log_retention" value="30" min="1" max="365">
+                                    <input type="number" class="form-input" id="log_retention" name="log_retention" value="<?php echo getSetting('log_retention', '30'); ?>" min="1" max="365">
                                 </div>
                             </div>
                         </div>
@@ -940,7 +1032,7 @@
                             </div>
                             
                             <div class="checkbox-group">
-                                <input type="checkbox" id="api_enabled" name="api_enabled" checked>
+                                <input type="checkbox" id="api_enabled" name="api_enabled" value="1" <?php echo getSetting('api_enabled', '1') ? 'checked' : ''; ?>>
                                 <label for="api_enabled">Enable REST API</label>
                             </div>
                             
@@ -948,7 +1040,7 @@
                                 <label class="form-label" for="api_rate_limit">
                                     API Rate Limit (requests per minute)
                                 </label>
-                                <input type="number" class="form-input" id="api_rate_limit" name="api_rate_limit" value="100" min="10" max="1000">
+                                <input type="number" class="form-input" id="api_rate_limit" name="api_rate_limit" value="<?php echo getSetting('api_rate_limit', '100'); ?>" min="10" max="1000">
                             </div>
                             
                             <div class="form-group">
@@ -956,7 +1048,7 @@
                                     API Key
                                 </label>
                                 <div style="display: flex; gap: 0.5rem;">
-                                    <input type="text" class="form-input" value="sk_5c2b7e3d8f9a1b6d4e7f8c9a" readonly style="flex: 1;">
+                                    <input type="text" class="form-input" value="<?php echo getSetting('api_key', 'sk_5c2b7e3d8f9a1b6d4e7f8c9a'); ?>" readonly style="flex: 1;">
                                     <button type="button" class="btn btn-secondary" id="copy-api-key">
                                         <i class="fas fa-copy"></i>
                                     </button>
@@ -973,7 +1065,7 @@
                             
                             <div class="advanced-settings" id="advanced-api">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="cors_enabled" name="cors_enabled" checked>
+                                    <input type="checkbox" id="cors_enabled" name="cors_enabled" value="1" <?php echo getSetting('cors_enabled', '1') ? 'checked' : ''; ?>>
                                     <label for="cors_enabled">Enable CORS</label>
                                 </div>
                                 
@@ -981,12 +1073,11 @@
                                     <label class="form-label" for="cors_origins">
                                         Allowed Origins
                                     </label>
-                                    <textarea class="form-textarea" id="cors_origins" name="cors_origins" placeholder="Enter allowed origins (one per line)">https://yourdomain.com
-http://localhost:3000</textarea>
+                                    <textarea class="form-textarea" id="cors_origins" name="cors_origins" placeholder="Enter allowed origins (one per line)"><?php echo htmlspecialchars(getSetting('cors_origins', "https://yourdomain.com\nhttp://localhost:3000")); ?></textarea>
                                 </div>
                                 
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="api_docs" name="api_docs">
+                                    <input type="checkbox" id="api_docs" name="api_docs" value="1" <?php echo getSetting('api_docs', '0') ? 'checked' : ''; ?>>
                                     <label for="api_docs">Enable API Documentation</label>
                                 </div>
                             </div>
@@ -998,7 +1089,7 @@ http://localhost:3000</textarea>
                     <button type="reset" class="btn btn-secondary">
                         <i class="fas fa-undo"></i> Reset Changes
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" name="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Save Settings
                     </button>
                 </div>
@@ -1046,7 +1137,7 @@ http://localhost:3000</textarea>
             
             // Copy API key functionality
             document.getElementById('copy-api-key').addEventListener('click', () => {
-                const apiKeyInput = document.querySelector('input[value="sk_5c2b7e3d8f9a1b6d4e7f8c9a"]');
+                const apiKeyInput = document.querySelector('input[value="<?php echo getSetting('api_key', 'sk_5c2b7e3d8f9a1b6d4e7f8c9a'); ?>"]');
                 apiKeyInput.select();
                 document.execCommand('copy');
                 
@@ -1089,7 +1180,7 @@ http://localhost:3000</textarea>
             colorPicker.addEventListener('input', () => {
                 colorPreview.style.backgroundColor = colorPicker.value;
             });
-        });
+        });`
     </script>
 </body>
 </html>

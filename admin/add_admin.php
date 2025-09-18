@@ -1,6 +1,15 @@
 <?php
+// Start session before any output
+session_name('admin_session');
+session_start();
+
 include("../connection.php");
-include("sidebar.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

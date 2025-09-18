@@ -1,14 +1,18 @@
 <?php
+// Start session before any output
 session_name('admin_session');
 session_start();
 
 include("../connection.php");
-include("sidebar.php");
 
-
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 // Determine which section to show (users or admins)
-$section = isset($_GET['section']) ? $_GET['section'] : 'users';
+$section = isset($_GET['section']) ? $conn->real_escape_string($_GET['section']) : 'users';
 
 // Initialize variables
 $search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
@@ -37,8 +41,6 @@ if ($section === 'users') {
         $where_conditions[] = "year = ?";
         $query_params[] = $year_filter;
     }
-
-    
 
     // Get total number of users
     $count_query = "SELECT COUNT(*) as total FROM users";
@@ -249,12 +251,14 @@ if ($section === 'users') {
             background-color: var(--light);
             color: var(--dark);
             line-height: 1.6;
+            overflow-x: hidden;
         }
         
         .main-content {
             margin-left: 280px;
             padding: 2rem;
             transition: all 0.3s ease;
+            min-height: 100vh;
         }
         
         .page-header {
@@ -285,6 +289,7 @@ if ($section === 'users') {
             display: flex;
             margin-bottom: 1.5rem;
             border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
         }
         
         .section-tab {
@@ -294,6 +299,7 @@ if ($section === 'users') {
             color: var(--gray);
             border-bottom: 3px solid transparent;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
         
         .section-tab.active {
@@ -340,6 +346,7 @@ if ($section === 'users') {
             font-size: 1rem;
             background: white;
             transition: all 0.3s ease;
+            width: 100%;
         }
         
         .filter-select:focus, .filter-input:focus {
@@ -365,6 +372,8 @@ if ($section === 'users') {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            text-decoration: none;
+            font-size: 0.95rem;
         }
         
         .btn-primary {
@@ -428,6 +437,7 @@ if ($section === 'users') {
         .users-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 800px;
         }
         
         .users-table th {
@@ -437,6 +447,7 @@ if ($section === 'users') {
             font-weight: 600;
             color: var(--dark);
             border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
         
         .users-table td {
@@ -463,6 +474,7 @@ if ($section === 'users') {
             color: white;
             font-weight: 600;
             font-size: 1rem;
+            flex-shrink: 0;
         }
         
         .admin-avatar {
@@ -471,6 +483,7 @@ if ($section === 'users') {
             border-radius: 50%;
             overflow: hidden;
             background: #e2e8f0;
+            flex-shrink: 0;
         }
         
         .admin-avatar img {
@@ -488,16 +501,23 @@ if ($section === 'users') {
         .user-details {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
         
         .user-name {
             font-weight: 600;
             color: var(--dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .user-email {
             color: var(--gray);
             font-size: 0.875rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .badge {
@@ -506,6 +526,7 @@ if ($section === 'users') {
             font-size: 0.875rem;
             font-weight: 600;
             display: inline-block;
+            white-space: nowrap;
         }
         
         .badge-primary {
@@ -536,6 +557,7 @@ if ($section === 'users') {
         .action-buttons {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
         
         .btn-icon {
@@ -544,6 +566,8 @@ if ($section === 'users') {
             display: flex;
             align-items: center;
             justify-content: center;
+            min-width: 36px;
+            min-height: 36px;
         }
         
         .no-users {
@@ -581,10 +605,10 @@ if ($section === 'users') {
         }
         
         .stats-bar {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
-            flex-wrap: wrap;
         }
         
         .stat-card {
@@ -593,8 +617,6 @@ if ($section === 'users') {
             border-radius: 0.75rem;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
-            flex: 1;
-            min-width: 200px;
         }
         
         .stat-value {
@@ -614,6 +636,7 @@ if ($section === 'users') {
             justify-content: center;
             gap: 0.5rem;
             margin-top: 2rem;
+            flex-wrap: wrap;
         }
         
         .pagination-item {
@@ -623,6 +646,8 @@ if ($section === 'users') {
             color: var(--dark);
             text-decoration: none;
             transition: all 0.3s ease;
+            min-width: 42px;
+            text-align: center;
         }
         
         .pagination-item:hover {
@@ -637,45 +662,159 @@ if ($section === 'users') {
             border-color: var(--primary);
         }
         
+        /* Mobile menu button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 18px;
+            left: 18px;
+            z-index: 1001;
+            width: 44px;
+            height: 44px;
+            background: #334155;
+            border: none;
+            border-radius: 8px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .mobile-menu-btn span {
+            display: block;
+            width: 26px;
+            height: 3px;
+            background: #fff;
+            margin: 4px 0;
+            border-radius: 2px;
+            transition: 0.3s;
+        }
+        
+        /* Responsive styles */
         @media (max-width: 1200px) {
             .main-content {
                 margin-left: 0;
                 padding: 1.5rem;
             }
+            
+            .mobile-menu-btn {
+                display: flex;
+            }
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
             .filter-row {
                 grid-template-columns: 1fr;
             }
             
-            .filter-actions {
+            .stats-bar {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-header {
                 flex-direction: column;
+                align-items: flex-start;
             }
             
             .page-title {
                 font-size: 1.75rem;
             }
             
-            .stats-bar {
-                flex-direction: column;
-            }
-            
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
             .section-tabs {
                 flex-direction: column;
+                border-bottom: none;
             }
             
             .section-tab {
                 border-bottom: 1px solid var(--border);
+                padding: 0.75rem 1rem;
+            }
+            
+            .section-tab.active {
+                border-bottom: 3px solid var(--primary);
+            }
+            
+            .filter-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .filter-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .users-table {
+                min-width: 600px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .stat-card {
+                min-width: auto;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .pagination {
+                gap: 0.25rem;
+            }
+            
+            .pagination-item {
+                padding: 0.4rem 0.8rem;
+                min-width: 36px;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .user-details {
+                width: 100%;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            .sidebar, .mobile-menu-btn, .btn, .action-buttons, .section-tabs, .filters-container {
+                display: none !important;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            
+            .users-table-container {
+                overflow: visible !important;
+                box-shadow: none !important;
+                border: 1px solid #000 !important;
+            }
+            
+            .users-table {
+                min-width: auto !important;
+                width: 100% !important;
             }
         }
     </style>
@@ -951,14 +1090,5 @@ if ($section === 'users') {
             </div>
         <?php endif; ?>
     </main>
-
-    <script>
-        // Auto-submit form when filters change
-        document.querySelectorAll('.filter-select').forEach(select => {
-            select.addEventListener('change', function() {
-                this.form.submit();
-            });
-        });
-    </script>
 </body>
 </html>

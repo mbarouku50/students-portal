@@ -1,3 +1,60 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+// Start session before any output
+session_name('admin_session');
+session_start();
+
+include("../connection.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: ../admin_login.php");
+    exit();
+}
+
+// Get counts for stats cards
+$total_requests = $conn->query("SELECT COUNT(*) as count FROM print_jobs")->fetch_assoc()['count'];
+$pending_requests = $conn->query("SELECT COUNT(*) as count FROM print_jobs WHERE status = 'pending'")->fetch_assoc()['count'];
+$completed_requests = $conn->query("SELECT COUNT(*) as count FROM print_jobs WHERE status = 'completed'")->fetch_assoc()['count'];
+
+// Get today's requests
+$today = date('Y-m-d');
+$todays_requests = $conn->query("SELECT COUNT(*) as count FROM print_jobs WHERE DATE(created_at) = '$today'")->fetch_assoc()['count'];
+
+// Get stationery performance data
+$stationery_performance = $conn->query("
+    SELECT s.name, s.location, 
+           COUNT(pj.job_id) as total_jobs,
+           SUM(CASE WHEN pj.status = 'pending' THEN 1 ELSE 0 END) as pending,
+           SUM(CASE WHEN pj.status = 'completed' THEN 1 ELSE 0 END) as completed,
+           ROUND((SUM(CASE WHEN pj.status = 'completed' THEN 1 ELSE 0 END) / COUNT(pj.job_id)) * 100) as completion_rate
+    FROM stationery s
+    LEFT JOIN print_jobs pj ON s.stationery_id = pj.stationery_id
+    GROUP BY s.stationery_id
+");
+
+// Get pending print requests
+$pending_print_requests = $conn->query("
+    SELECT pj.*, s.name as stationery_name 
+    FROM print_jobs pj 
+    JOIN stationery s ON pj.stationery_id = s.stationery_id 
+    WHERE pj.status IN ('pending', 'processing')
+    ORDER BY pj.created_at DESC
+");
+
+// Get completed print requests
+$completed_print_requests = $conn->query("
+    SELECT pj.*, s.name as stationery_name 
+    FROM print_jobs pj 
+    JOIN stationery s ON pj.stationery_id = s.stationery_id 
+    WHERE pj.status = 'completed'
+    ORDER BY pj.created_at DESC
+    LIMIT 10
+");
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +64,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Your existing CSS styles here */
+        /* Your CSS styles remain the same as provided */
         :root {
             --primary: #3b82f6;
             --primary-hover: #2563eb;
@@ -41,67 +98,6 @@
             min-height: 100vh;
         }
         
-        .sidebar {
-            width: 280px;
-            background: white;
-            box-shadow: var(--card-shadow);
-            padding: 1.5rem;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--primary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-        
-        .logo-text {
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-        
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-light);
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        
-        .nav-item:hover, .nav-item.active {
-            background-color: #eff6ff;
-            color: var(--primary);
-        }
-        
-        .nav-item.active {
-            font-weight: 500;
-        }
-        
-        .nav-item i {
-            width: 20px;
-            text-align: center;
-        }
         
         .main-content {
             flex: 1;
@@ -680,6 +676,51 @@
                 padding: 1.5rem;
             }
         }
+        
+        .user-info {
+            line-height: 1.4;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .user-meta {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+        
+        .request-details {
+            font-size: 0.875rem;
+        }
+        
+        .request-details div {
+            margin-bottom: 0.25rem;
+        }
+        
+        .document-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8fafc;
+        }
+        
+        .document-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .no-preview {
+            text-align: center;
+            color: var(--text-light);
+        }
+        
+        .no-preview i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -699,7 +740,7 @@
                     </div>
                 </div>
                 <div class="actions">
-                    <button class="action-btn btn-primary">
+                    <button class="action-btn btn-primary" onclick="location.href='new_request.php'">
                         <i class="fas fa-plus"></i> New Request
                     </button>
                 </div>
@@ -712,9 +753,9 @@
                         <i class="fas fa-print"></i>
                         Total Requests
                     </div>
-                    <div class="value">247</div>
+                    <div class="value"><?php echo $total_requests; ?></div>
                     <div class="trend">
-                        <i class="fas fa-arrow-up"></i> 12% from last week
+                        <i class="fas fa-arrow-up"></i> All time requests
                     </div>
                 </div>
                 
@@ -723,9 +764,9 @@
                         <i class="fas fa-clock"></i>
                         Pending
                     </div>
-                    <div class="value">42</div>
+                    <div class="value"><?php echo $pending_requests; ?></div>
                     <div class="trend">
-                        <i class="fas fa-arrow-up"></i> 8% from last week
+                        <i class="fas fa-info-circle"></i> Awaiting processing
                     </div>
                 </div>
                 
@@ -734,9 +775,9 @@
                         <i class="fas fa-check-circle"></i>
                         Completed
                     </div>
-                    <div class="value">189</div>
-                    <div class="trend down">
-                        <i class="fas fa-arrow-down"></i> 3% from last week
+                    <div class="value"><?php echo $completed_requests; ?></div>
+                    <div class="trend">
+                        <i class="fas fa-check"></i> Successfully processed
                     </div>
                 </div>
                 
@@ -745,9 +786,9 @@
                         <i class="fas fa-calendar-day"></i>
                         Today's Requests
                     </div>
-                    <div class="value">16</div>
+                    <div class="value"><?php echo $todays_requests; ?></div>
                     <div class="trend">
-                        <i class="fas fa-arrow-up"></i> 15% from yesterday
+                        <i class="fas fa-calendar"></i> Requests today
                     </div>
                 </div>
             </div>
@@ -779,6 +820,7 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <?php while($row = $stationery_performance->fetch_assoc()): ?>
                         <tr>
                             <td>
                                 <div class="stationery-info">
@@ -786,111 +828,36 @@
                                         <i class="fas fa-store"></i>
                                     </div>
                                     <div class="stationery-details">
-                                        <div class="stationery-name">Alpha Printers</div>
-                                        <div class="stationery-meta">Main Branch</div>
+                                        <div class="stationery-name"><?php echo $row['name']; ?></div>
+                                        <div class="stationery-meta"><?php echo $row['location']; ?></div>
                                     </div>
                                 </div>
                             </td>
-                            <td>87</td>
-                            <td>12</td>
-                            <td>75</td>
+                            <td><?php echo $row['total_jobs']; ?></td>
+                            <td><?php echo $row['pending']; ?></td>
+                            <td><?php echo $row['completed']; ?></td>
                             <td>
                                 <div class="progress-container">
                                     <div class="progress-header">
                                         <div class="progress-title">Progress</div>
-                                        <div class="progress-value">86%</div>
+                                        <div class="progress-value"><?php echo $row['completion_rate']; ?>%</div>
                                     </div>
                                     <div class="progress-bar">
-                                        <div class="progress-fill progress-completed" style="width: 86%"></div>
+                                        <div class="progress-fill progress-completed" style="width: <?php echo $row['completion_rate']; ?>%"></div>
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="status-badge status-completed"><i class="fas fa-check-circle"></i> Active</span></td>
+                            <td>
+                                <?php if ($row['completion_rate'] > 80): ?>
+                                <span class="status-badge status-completed"><i class="fas fa-check-circle"></i> Active</span>
+                                <?php elseif ($row['completion_rate'] > 50): ?>
+                                <span class="status-badge status-processing"><i class="fas fa-sync-alt"></i> Busy</span>
+                                <?php else: ?>
+                                <span class="status-badge status-pending"><i class="fas fa-exclamation-circle"></i> Maintenance</span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
-                        <tr>
-                            <td>
-                                <div class="stationery-info">
-                                    <div class="stationery-logo">
-                                        <i class="fas fa-store"></i>
-                                    </div>
-                                    <div class="stationery-details">
-                                        <div class="stationery-name">Beta Copies</div>
-                                        <div class="stationery-meta">City Center</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>64</td>
-                            <td>18</td>
-                            <td>46</td>
-                            <td>
-                                <div class="progress-container">
-                                    <div class="progress-header">
-                                        <div class="progress-title">Progress</div>
-                                        <div class="progress-value">72%</div>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill progress-completed" style="width: 72%"></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td><span class="status-badge status-processing"><i class="fas fa-sync-alt"></i> Busy</span></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="stationery-info">
-                                    <div class="stationery-logo">
-                                        <i class="fas fa-store"></i>
-                                    </div>
-                                    <div class="stationery-details">
-                                        <div class="stationery-name">Gamma Press</div>
-                                        <div class="stationery-meta">West Branch</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>52</td>
-                            <td>8</td>
-                            <td>44</td>
-                            <td>
-                                <div class="progress-container">
-                                    <div class="progress-header">
-                                        <div class="progress-title">Progress</div>
-                                        <div class="progress-value">85%</div>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill progress-completed" style="width: 85%"></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td><span class="status-badge status-completed"><i class="fas fa-check-circle"></i> Active</span></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="stationery-info">
-                                    <div class="stationery-logo">
-                                        <i class="fas fa-store"></i>
-                                    </div>
-                                    <div class="stationery-details">
-                                        <div class="stationery-name">Delta Documents</div>
-                                        <div class="stationery-meta">North Branch</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>44</td>
-                            <td>4</td>
-                            <td>40</td>
-                            <td>
-                                <div class="progress-container">
-                                    <div class="progress-header">
-                                        <div class="progress-title">Progress</div>
-                                        <div class="progress-value">91%</div>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill progress-completed" style="width: 91%"></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td><span class="status-badge status-pending"><i class="fas fa-exclamation-circle"></i> Maintenance</span></td>
-                        </tr>
+                        <?php endwhile; ?>
                     </tbody>
                 </table>
             </div>
@@ -924,115 +891,83 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <?php while($row = $pending_print_requests->fetch_assoc()): ?>
                         <tr>
-                            <td>#PR-1028</td>
+                            <td>#PR-<?php echo $row['job_id']; ?></td>
                             <td>
                                 <div class="user-info">
-                                    <div class="user-name">Michael Johnson</div>
-                                    <div class="user-meta">ID: CBE2874</div>
-                                    <div class="user-meta">Phone: +251 912 345 678</div>
+                                    <div class="user-name"><?php echo $row['user_name']; ?></div>
+                                    <div class="user-meta">Phone: <?php echo $row['phone_number']; ?></div>
                                 </div>
                             </td>
-                            <td>Alpha Printers</td>
-                            <td>Business Proposal.pdf</td>
+                            <td><?php echo $row['stationery_name']; ?></td>
+                            <td>
+                                <?php 
+                                $file_path = $row['file_path'];
+                                $file_name = $file_path ? basename($file_path) : 'No file uploaded';
+                                echo $file_name;
+                                ?>
+                            </td>
                             <td>
                                 <div class="request-details">
-                                    <div><strong>Copies:</strong> 3</div>
-                                    <div><strong>Type:</strong> Color</div>
-                                    <div><strong>Pages:</strong> 24</div>
-                                    <div><strong>Notes:</strong> Spiral binding</div>
+                                    <div><strong>Copies:</strong> <?php echo $row['copies']; ?></div>
+                                    <div><strong>Type:</strong> <?php echo ucfirst($row['print_type']); ?></div>
+                                    <?php if (!empty($row['special_instructions'])): ?>
+                                    <div><strong>Notes:</strong> <?php echo $row['special_instructions']; ?></div>
+                                    <?php endif; ?>
                                 </div>
                             </td>
-                            <td>Oct 15, 2023 10:30 AM</td>
-                            <td><span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span></td>
+                            <td><?php echo date('M j, Y g:i A', strtotime($row['created_at'])); ?></td>
+                            <td>
+                                <?php 
+                                $status_class = '';
+                                if ($row['status'] == 'pending') $status_class = 'status-pending';
+                                if ($row['status'] == 'processing') $status_class = 'status-processing';
+                                if ($row['status'] == 'completed') $status_class = 'status-completed';
+                                if ($row['status'] == 'cancelled') $status_class = 'status-cancelled';
+                                ?>
+                                <span class="status-badge <?php echo $status_class; ?>">
+                                    <i class="fas 
+                                        <?php 
+                                        if ($row['status'] == 'pending') echo 'fa-clock';
+                                        if ($row['status'] == 'processing') echo 'fa-sync-alt';
+                                        if ($row['status'] == 'completed') echo 'fa-check-circle';
+                                        if ($row['status'] == 'cancelled') echo 'fa-times-circle';
+                                        ?>
+                                    "></i> 
+                                    <?php echo ucfirst($row['status']); ?>
+                                </span>
+                            </td>
                             <td>
                                 <div class="btn-group">
-                                    <button class="action-btn btn-primary">
+                                    <button class="action-btn btn-primary view-document" 
+                                        data-file="<?php echo $row['file_path']; ?>" 
+                                        data-filename="<?php echo $file_name; ?>">
                                         <i class="fas fa-eye"></i> View
                                     </button>
-                                    <button class="action-btn btn-success">
-                                        <i class="fas fa-check"></i> Complete
-                                    </button>
+                                    <?php if ($row['status'] != 'completed'): ?>
+                                    <form action="update_status.php" method="POST" style="display: inline;">
+                                        <input type="hidden" name="job_id" value="<?php echo $row['job_id']; ?>">
+                                        <input type="hidden" name="status" value="completed">
+                                        <button type="submit" class="action-btn btn-success">
+                                            <i class="fas fa-check"></i> Complete
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
-                        <tr>
-                            <td>#PR-1027</td>
-                            <td>
-                                <div class="user-info">
-                                    <div class="user-name">Sarah Williams</div>
-                                    <div class="user-meta">ID: CBE1983</div>
-                                    <div class="user-meta">Phone: +251 911 987 654</div>
-                                </div>
-                            </td>
-                            <td>Beta Copies</td>
-                            <td>Research Paper.docx</td>
-                            <td>
-                                <div class="request-details">
-                                    <div><strong>Copies:</strong> 2</div>
-                                    <div><strong>Type:</strong> B&W</div>
-                                    <div><strong>Pages:</strong> 32</div>
-                                    <div><strong>Notes:</strong> Double-sided</div>
-                                </div>
-                            </td>
-                            <td>Oct 15, 2023 9:15 AM</td>
-                            <td><span class="status-badge status-processing"><i class="fas fa-sync-alt"></i> Processing</span></td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="action-btn btn-primary">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button class="action-btn btn-success">
-                                        <i class="fas fa-check"></i> Complete
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>#PR-1026</td>
-                            <td>
-                                <div class="user-info">
-                                    <div class="user-name">Robert Kim</div>
-                                    <div class="user-meta">ID: CBE3462</div>
-                                    <div class="user-meta">Phone: +251 913 456 789</div>
-                                </div>
-                            </td>
-                            <td>Gamma Press</td>
-                            <td>Marketing Materials.pptx</td>
-                            <td>
-                                <div class="request-details">
-                                    <div><strong>Copies:</strong> 50</div>
-                                    <div><strong>Type:</strong> Color</div>
-                                    <div><strong>Pages:</strong> 12</div>
-                                    <div><strong>Notes:</strong> High gloss finish</div>
-                                </div>
-                            </td>
-                            <td>Oct 14, 2023 3:45 PM</td>
-                            <td><span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span></td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="action-btn btn-primary">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button class="action-btn btn-success">
-                                        <i class="fas fa-check"></i> Complete
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                        <?php endwhile; ?>
                     </tbody>
                 </table>
                 
                 <div class="pagination">
-                    <div class="pagination-info">Showing 1 to 3 of 42 entries</div>
+                    <div class="pagination-info">Showing <?php echo $pending_print_requests->num_rows; ?> entries</div>
                     <div class="pagination-controls">
                         <button class="page-btn disabled">
                             <i class="fas fa-chevron-left"></i>
                         </button>
                         <button class="page-btn active">1</button>
-                        <button class="page-btn">2</button>
-                        <button class="page-btn">3</button>
-                        <button class="page-btn">4</button>
                         <button class="page-btn">
                             <i class="fas fa-chevron-right"></i>
                         </button>
@@ -1067,118 +1002,63 @@
                             <th>Document</th>
                             <th>Details</th>
                             <th>Submitted</th>
-                            <th>Completed</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <?php while($row = $completed_print_requests->fetch_assoc()): ?>
                         <tr>
-                            <td>#PR-1025</td>
+                            <td>#PR-<?php echo $row['job_id']; ?></td>
                             <td>
                                 <div class="user-info">
-                                    <div class="user-name">Emily Chen</div>
-                                    <div class="user-meta">ID: CBE5632</div>
+                                    <div class="user-name"><?php echo $row['user_name']; ?></div>
+                                    <div class="user-meta">Phone: <?php echo $row['phone_number']; ?></div>
                                 </div>
                             </td>
-                            <td>Delta Documents</td>
-                            <td>Training Manual.pdf</td>
+                            <td><?php echo $row['stationery_name']; ?></td>
+                            <td>
+                                <?php 
+                                $file_path = $row['file_path'];
+                                $file_name = $file_path ? basename($file_path) : 'No file uploaded';
+                                echo $file_name;
+                                ?>
+                            </td>
                             <td>
                                 <div class="request-details">
-                                    <div><strong>Copies:</strong> 10</div>
-                                    <div><strong>Type:</strong> B&W</div>
-                                    <div><strong>Pages:</strong> 56</div>
+                                    <div><strong>Copies:</strong> <?php echo $row['copies']; ?></div>
+                                    <div><strong>Type:</strong> <?php echo ucfirst($row['print_type']); ?></div>
                                 </div>
                             </td>
-                            <td>Oct 14, 2023 11:20 AM</td>
-                            <td>Oct 14, 2023 2:45 PM</td>
+                            <td><?php echo date('M j, Y g:i A', strtotime($row['created_at'])); ?></td>
                             <td><span class="status-badge status-completed"><i class="fas fa-check-circle"></i> Completed</span></td>
                             <td>
                                 <div class="btn-group">
-                                    <button class="action-btn btn-outline">
+                                    <button class="action-btn btn-outline view-document" 
+                                        data-file="<?php echo $row['file_path']; ?>" 
+                                        data-filename="<?php echo $file_name; ?>">
                                         <i class="fas fa-eye"></i> View
                                     </button>
-                                    <button class="action-btn btn-outline">
-                                        <i class="fas fa-redo"></i> Re-print
-                                    </button>
+                                    <form action="reprint.php" method="POST" style="display: inline;">
+                                        <input type="hidden" name="job_id" value="<?php echo $row['job_id']; ?>">
+                                        <button type="submit" class="action-btn btn-outline">
+                                            <i class="fas fa-redo"></i> Re-print
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
-                        <tr>
-                            <td>#PR-1024</td>
-                            <td>
-                                <div class="user-info">
-                                    <div class="user-name">David Miller</div>
-                                    <div class="user-meta">ID: CBE4287</div>
-                                </div>
-                            </td>
-                            <td>Alpha Printers</td>
-                            <td>Financial Report.xlsx</td>
-                            <td>
-                                <div class="request-details">
-                                    <div><strong>Copies:</strong> 5</div>
-                                    <div><strong>Type:</strong> Color</div>
-                                    <div><strong>Pages:</strong> 18</div>
-                                </div>
-                            </td>
-                            <td>Oct 13, 2023 4:30 PM</td>
-                            <td>Oct 14, 2023 9:15 AM</td>
-                            <td><span class="status-badge status-completed"><i class="fas fa-check-circle"></i> Completed</span></td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="action-btn btn-outline">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button class="action-btn btn-outline">
-                                        <i class="fas fa-redo"></i> Re-print
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>#PR-1023</td>
-                            <td>
-                                <div class="user-info">
-                                    <div class="user-name">Lisa Anderson</div>
-                                    <div class="user-meta">ID: CBE8741</div>
-                                </div>
-                            </td>
-                            <td>Beta Copies</td>
-                            <td>Event Flyer.psd</td>
-                            <td>
-                                <div class="request-details">
-                                    <div><strong>Copies:</strong> 200</div>
-                                    <div><strong>Type:</strong> Color</div>
-                                    <div><strong>Pages:</strong> 1</div>
-                                </div>
-                            </td>
-                            <td>Oct 13, 2023 2:15 PM</td>
-                            <td>Oct 13, 2023 5:30 PM</td>
-                            <td><span class="status-badge status-completed"><i class="fas fa-check-circle"></i> Completed</span></td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="action-btn btn-outline">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button class="action-btn btn-outline">
-                                        <i class="fas fa-redo"></i> Re-print
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                        <?php endwhile; ?>
                     </tbody>
                 </table>
                 
                 <div class="pagination">
-                    <div class="pagination-info">Showing 1 to 3 of 189 entries</div>
+                    <div class="pagination-info">Showing <?php echo $completed_print_requests->num_rows; ?> of <?php echo $completed_requests; ?> entries</div>
                     <div class="pagination-controls">
                         <button class="page-btn disabled">
                             <i class="fas fa-chevron-left"></i>
                         </button>
                         <button class="page-btn active">1</button>
-                        <button class="page-btn">2</button>
-                        <button class="page-btn">3</button>
-                        <button class="page-btn">4</button>
                         <button class="page-btn">
                             <i class="fas fa-chevron-right"></i>
                         </button>
@@ -1192,12 +1072,17 @@
     <div id="documentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Document Preview - <span id="modalDocName">Business Proposal.pdf</span></h3>
+                <h3 class="modal-title">Document Preview</h3>
                 <button class="close-modal">&times;</button>
             </div>
-            <iframe id="documentPreview" class="document-preview" frameborder="0"></iframe>
+            <div class="document-preview">
+                <div class="no-preview">
+                    <i class="fas fa-file-alt"></i>
+                    <p>Preview not available for this document</p>
+                </div>
+            </div>
             <div class="modal-footer">
-                <button class="action-btn btn-outline close-modal">Close</button>
+                <button class="action-btn btn-outline close-modal-btn">Close</button>
                 <button class="action-btn btn-success">
                     <i class="fas fa-check"></i> Mark as Completed
                 </button>

@@ -375,12 +375,14 @@ $activities = array_slice($activities, 0, 5);
             .quick-stats {
                 grid-template-columns: 1fr;
             }
-            
+            .main-content {
+                margin-left: 0 !important;
+                padding: 1rem;
+            }
             .user-menu {
                 flex-direction: column;
                 align-items: flex-end;
             }
-            
             .user-info {
                 text-align: right;
             }

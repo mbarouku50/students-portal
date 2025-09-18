@@ -1,7 +1,15 @@
 <?php
+// Start session before any output
 session_name('admin_session');
 session_start();
+
 include("../connection.php");
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -80,20 +88,65 @@ if ($result->num_rows > 0) {
             --warning-color: #f39c12;
             --error-color: #e74c3c;
             --sidebar-width: 280px;
+            --sidebar-collapsed-width: 70px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7f9;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            z-index: 1000;
         }
         
         .main-content {
             flex: 1;
             margin-left: var(--sidebar-width);
             padding: 2rem;
+            transition: all 0.3s ease;
         }
         
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            z-index: 1001;
+            cursor: pointer;
+        }
+        
+        /* Form styles */
         .form-container {
             background-color: white;
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
         }
         
         .form-group {
@@ -104,19 +157,28 @@ if ($result->num_rows > 0) {
             display: block;
             margin-bottom: 5px;
             font-weight: 600;
+            color: #444;
         }
         
         .form-control {
             width: 100%;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
+            transition: border-color 0.3s;
         }
         
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* Button styles */
         .btn {
             display: inline-block;
-            padding: 8px 16px;
+            padding: 10px 16px;
             background-color: var(--secondary-color);
             color: white;
             border: none;
@@ -124,6 +186,13 @@ if ($result->num_rows > 0) {
             cursor: pointer;
             font-size: 14px;
             margin-right: 10px;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
         
         .btn-success {
@@ -134,23 +203,29 @@ if ($result->num_rows > 0) {
             background-color: var(--error-color);
         }
         
+        /* Courses grid */
         .courses-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
+            gap: 20px;
         }
         
         .course-card {
             background-color: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
-            overflow: visible !important; /* Override any overflow settings */
+        }
+        
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         .course-img {
-            height: 60px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -161,23 +236,24 @@ if ($result->num_rows > 0) {
         
         .course-info {
             padding: 15px;
-            position: relative;
-            z-index: 1;
         }
         
         .course-info h3 {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-size: 16px;
+            color: #2c3e50;
         }
         
         .course-info p {
             color: #666;
             font-size: 14px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            line-height: 1.4;
         }
         
         .course-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
         }
         
@@ -188,13 +264,17 @@ if ($result->num_rows > 0) {
             display: inline-block;
             margin-left: 8px;
             border: 1px solid #ddd;
+            vertical-align: middle;
         }
         
+        /* Alert styles */
         .alert {
-            padding: 10px 15px;
-            margin-bottom: 15px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
             border-radius: 4px;
             font-size: 14px;
+            display: flex;
+            align-items: center;
         }
         
         .alert-success {
@@ -208,6 +288,8 @@ if ($result->num_rows > 0) {
             border-left: 3px solid var(--error-color);
             color: var(--error-color);
         }
+        
+        /* Dropdown styles */
         .dropdown {
             position: relative;
             display: inline-block;
@@ -217,39 +299,185 @@ if ($result->num_rows > 0) {
             display: none;
             position: absolute;
             background-color: white;
-            min-width: 180px; /* Increased width */
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
             z-index: 1000;
-            border-radius: 4px;
+            border-radius: 6px;
             margin-top: 5px;
             right: 0;
-            max-height: 300px; /* Limit height with scroll if needed */
-            overflow-y: auto; /* Add scroll if content is too long */
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .dropdown-content a {
             color: #333;
-            padding: 10px 15px; /* Increased padding */
+            padding: 12px 16px;
             text-decoration: none;
             display: block;
             font-size: 14px;
-            white-space: nowrap; /* Prevent text wrapping */
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
         }
 
         .dropdown-content a:hover {
-            background-color: #f1f1f1;
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-content a i {
+            margin-right: 8px;
+            width: 18px;
+            text-align: center;
         }
 
         .show {
             display: block;
         }
+        
+        /* Page header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .courses-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+        
+        @media (max-width: 992px) {
+            :root {
+                --sidebar-width: 70px;
+            }
+            
+            .sidebar .menu-text {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: var(--sidebar-width);
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1.5rem;
+                margin-left: 0;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .courses-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .course-actions {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .dropdown-content {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 300px;
+                max-height: 80vh;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .form-container {
+                padding: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 8px;
+                text-align: center;
+                justify-content: center;
+            }
+            
+            .course-actions .btn {
+                width: auto;
+            }
+            
+            .color-preview {
+                width: 20px;
+                height: 20px;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            .sidebar, .menu-toggle, .course-actions, .btn {
+                display: none !important;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .course-card {
+                break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
+    <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
     <?php include('sidebar.php'); ?>
     
     <main class="main-content">
-        <h1 style="margin-bottom: 20px;"><i class="fas fa-book"></i> Manage Courses</h1>
+        <div class="page-header">
+            <h1 class="page-title"><i class="fas fa-book"></i> Manage Courses</h1>
+        </div>
         
         <?php if (isset($success)): ?>
             <div class="alert alert-success">
@@ -264,7 +492,7 @@ if ($result->num_rows > 0) {
         <?php endif; ?>
         
         <div class="form-container">
-            <h2 style="margin-bottom: 15px; font-size: 18px;"><?php echo isset($_GET['edit']) ? 'Edit Course' : 'Add New Course'; ?></h2>
+            <h2 style="margin-bottom: 15px; font-size: 18px; color: var(--dark-color);"><?php echo isset($_GET['edit']) ? 'Edit Course' : 'Add New Course'; ?></h2>
             <form method="POST">
                 <?php
                 $edit_course = null;
@@ -301,45 +529,51 @@ if ($result->num_rows > 0) {
                 
                 <div class="form-group">
                     <label for="color_code">Color Code <span class="color-preview" id="colorPreview" style="background-color: <?php echo $edit_course ? $edit_course['color_code'] : '#e74c3c'; ?>"></span></label>
-                    <input type="color" id="color_code" name="color_code" class="form-control" style="height: 40px; width: 60px; padding: 0;"
-                           value="<?php echo $edit_course ? $edit_course['color_code'] : '#e74c3c'; ?>" required>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="color" id="color_code" name="color_code" class="form-control" style="height: 40px; width: 60px; padding: 0;"
+                               value="<?php echo $edit_course ? $edit_course['color_code'] : '#e74c3c'; ?>" required>
+                        <span>Click to choose a color</span>
+                    </div>
                 </div>
                 
-                <button type="submit" name="<?php echo $edit_course ? 'update_course' : 'add_course'; ?>" class="btn btn-success">
-                    <i class="fas fa-save"></i> <?php echo $edit_course ? 'Update' : 'Add Course'; ?>
-                </button>
-                
-                <?php if ($edit_course): ?>
-                    <a href="manage_courses.php" class="btn">
-                        <i class="fas fa-times"></i> Cancel
-                    </a>
-                <?php endif; ?>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button type="submit" name="<?php echo $edit_course ? 'update_course' : 'add_course'; ?>" class="btn btn-success">
+                        <i class="fas fa-save"></i> <?php echo $edit_course ? 'Update' : 'Add Course'; ?>
+                    </button>
+                    
+                    <?php if ($edit_course): ?>
+                        <a href="manage_courses.php" class="btn">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    <?php endif; ?>
+                </div>
             </form>
         </div>
         
-        <h2 style="margin-bottom: 15px; font-size: 18px;">Existing Courses</h2>
-        <div class="courses-grid">
-            <?php foreach ($courses as $course): ?>
-                <div class="course-card">
-                    <div class="course-img" style="background-color: <?php echo $course['color_code']; ?>">
-                        <?php echo $course['course_code']; ?>
-                    </div>
-                    <div class="course-info">
-                        <h3><?php echo $course['course_name']; ?></h3>
-                        <p><?php echo substr($course['description'], 0, 100); ?><?php echo strlen($course['description']) > 100 ? '...' : ''; ?></p>
-                        <div class="course-actions">
-                            <a href="manage_courses.php?edit=<?php echo $course['course_id']; ?>" class="btn" style="padding: 5px 10px;">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>
-                            <a href="manage_courses.php?delete=<?php echo $course['course_id']; ?>" class="btn btn-danger" style="padding: 5px 10px;" onclick="return confirm('Are you sure you want to delete this course?');">
-                                <i class="fas fa-trash"></i> Delete
-                            </a>
-                              <!-- Updated dropdown with better spacing -->
-                                <div class="dropdown" style="position: relative;">
-                                    <button onclick="toggleDropdown(this)" class="btn" style="padding: 5px 10px;">
-                                        <i class="fas fa-upload"></i> Upload Docs <i class="fas fa-caret-down"></i>
+        <h2 style="margin-bottom: 15px; font-size: 18px; color: var(--dark-color);">Existing Courses</h2>
+        
+        <?php if (count($courses) > 0): ?>
+            <div class="courses-grid">
+                <?php foreach ($courses as $course): ?>
+                    <div class="course-card">
+                        <div class="course-img" style="background-color: <?php echo $course['color_code']; ?>">
+                            <?php echo $course['course_code']; ?>
+                        </div>
+                        <div class="course-info">
+                            <h3><?php echo $course['course_name']; ?></h3>
+                            <p><?php echo substr($course['description'], 0, 100); ?><?php echo strlen($course['description']) > 100 ? '...' : ''; ?></p>
+                            <div class="course-actions">
+                                <a href="manage_courses.php?edit=<?php echo $course['course_id']; ?>" class="btn">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="manage_courses.php?delete=<?php echo $course['course_id']; ?>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this course?');">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                                <div class="dropdown">
+                                    <button onclick="toggleDropdown(this)" class="btn">
+                                        <i class="fas fa-upload"></i> Upload <i class="fas fa-caret-down"></i>
                                     </button>
-                                    <div id="dropdown-<?php echo $course['course_id']; ?>" class="dropdown-content" style="position: absolute;">
+                                    <div id="dropdown-<?php echo $course['course_id']; ?>" class="dropdown-content">
                                         <a href="upload_docs.php?course_id=<?php echo $course['course_id']; ?>&type=lecture_notes">
                                             <i class="fas fa-file-alt"></i> Lecture Notes
                                         </a>
@@ -362,15 +596,22 @@ if ($result->num_rows > 0) {
                                             <i class="fas fa-map-marked-alt"></i> Field Reports
                                         </a>
                                         <a href="upload_docs.php?course_id=<?php echo $course['course_id']; ?>&type=cover_pages">
-                                            <i class="fas fa-map-marked-alt"></i> Cover Pages
+                                            <i class="fas fa-file-image"></i> Cover Pages
                                         </a>
                                     </div>
                                 </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="form-container" style="text-align: center; padding: 30px;">
+                <i class="fas fa-book-open" style="font-size: 48px; color: #ddd; margin-bottom: 15px;"></i>
+                <h3 style="color: #888;">No Courses Found</h3>
+                <p style="color: #aaa;">Get started by adding your first course using the form above.</p>
+            </div>
+        <?php endif; ?>
     </main>
 
     <script>
@@ -379,7 +620,7 @@ if ($result->num_rows > 0) {
             document.getElementById('colorPreview').style.backgroundColor = this.value;
         });
 
-        // Toggle dropdown function with improved visibility
+        // Toggle dropdown function
         function toggleDropdown(button) {
             // Close all other dropdowns first
             var dropdowns = document.getElementsByClassName("dropdown-content");
@@ -431,13 +672,27 @@ if ($result->num_rows > 0) {
 
         // Close dropdowns when clicking outside
         window.addEventListener('click', function(event) {
-            if (!event.target.closest('.dropdown')) {
+            if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown-content')) {
                 var dropdowns = document.getElementsByClassName("dropdown-content");
                 for (var i = 0; i < dropdowns.length; i++) {
                     dropdowns[i].classList.remove('show');
                 }
             }
         });
-</script>
+        
+        // Mobile menu toggle
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // Adjust layout on window resize
+        window.addEventListener('resize', function() {
+            // Close all dropdowns on resize
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].classList.remove('show');
+            }
+        });
+    </script>
 </body>
 </html>

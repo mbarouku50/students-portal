@@ -1,7 +1,13 @@
 <?php
+// Start session before any output
+session_name('admin_session');
+session_start();
 include("../connection.php");
-include("sidebar.php");
-
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
 // Get document type from filename
 $current_file = basename(__FILE__, '.php');
 $doc_type = str_replace('category_', '', $current_file);

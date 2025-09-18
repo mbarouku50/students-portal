@@ -19,6 +19,14 @@ if ($users_result) {
     $total_users_count = $users_result->fetch_assoc()['count'];
 }
 ?>
+
+<button id="sidebarMenuBtn" aria-label="Open menu" class="sidebar-menu-btn">
+    <span></span>
+    <span></span>
+    <span></span>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
+
 <style>
     :root {
         --sidebar-bg: #1e293b;
@@ -30,10 +38,66 @@ if ($users_result) {
         --sidebar-border: #334155;
         --sidebar-icon-size: 1.1rem;
         --sidebar-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --sidebar-width: 280px;
+        --sidebar-collapsed-width: 80px;
     }
 
+    /* Hamburger menu button */
+    .sidebar-menu-btn {
+        position: fixed;
+        top: 18px;
+        left: 18px;
+        z-index: 1001;
+        width: 44px;
+        height: 44px;
+        background: #334155;
+        border: none;
+        border-radius: 8px;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .sidebar-menu-btn:hover {
+        background: #475569;
+    }
+    
+    .sidebar-menu-btn span {
+        display: block;
+        width: 26px;
+        height: 3px;
+        background: #fff;
+        margin: 4px 0;
+        border-radius: 2px;
+        transition: 0.3s;
+    }
+    
+    /* Overlay for mobile */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 199;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+    }
+    
+    .sidebar-overlay.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Sidebar container */
     .sidebar {
-        width: 280px;
+        width: var(--sidebar-width);
         background: var(--sidebar-bg);
         color: var(--sidebar-text);
         height: 100vh;
@@ -42,12 +106,13 @@ if ($users_result) {
         top: 0;
         display: flex;
         flex-direction: column;
-        z-index: 100;
+        z-index: 200;
         border-right: 1px solid var(--sidebar-border);
-        transition: var(--sidebar-transition);
+        transition: transform 0.3s ease, width 0.3s ease;
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: var(--sidebar-accent) var(--sidebar-bg);
+        box-shadow: 2px 0 16px rgba(0,0,0,0.08);
     }
 
     .sidebar::-webkit-scrollbar {
@@ -63,6 +128,7 @@ if ($users_result) {
         border-radius: 6px;
     }
 
+    /* Logo section */
     .sidebar-logo {
         display: flex;
         align-items: center;
@@ -72,6 +138,8 @@ if ($users_result) {
         top: 0;
         background: var(--sidebar-bg);
         z-index: 10;
+        min-height: 80px;
+        box-sizing: border-box;
     }
 
     .sidebar-logo img {
@@ -87,8 +155,10 @@ if ($users_result) {
         font-weight: 700;
         color: white;
         letter-spacing: 0.5px;
+        transition: opacity 0.3s;
     }
 
+    /* Section headers */
     .sidebar-header {
         padding: 1.25rem 1.5rem 0.5rem;
         font-size: 0.75rem;
@@ -97,8 +167,12 @@ if ($users_result) {
         letter-spacing: 0.5px;
         color: #94a3b8;
         margin-top: 0.5rem;
+        transition: opacity 0.3s;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
+    /* Menu items */
     .sidebar-menu {
         list-style: none;
         padding: 0.5rem 0.75rem;
@@ -107,6 +181,7 @@ if ($users_result) {
         flex-direction: column;
         gap: 0.25rem;
         margin-top: 0.5rem;
+        margin-bottom: 1rem;
     }
 
     .sidebar-menu li {
@@ -126,6 +201,8 @@ if ($users_result) {
         gap: 0.75rem;
         font-weight: 500;
         position: relative;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
     .sidebar-menu a:hover {
@@ -156,6 +233,7 @@ if ($users_result) {
         display: flex;
         justify-content: center;
         align-items: center;
+        flex-shrink: 0;
     }
 
     .sidebar-menu .badge {
@@ -166,12 +244,20 @@ if ($users_result) {
         padding: 0.2rem 0.5rem;
         font-size: 0.7rem;
         font-weight: 700;
+        min-width: 24px;
+        text-align: center;
+        transition: opacity 0.3s;
     }
 
+    /* Footer section */
     .sidebar-footer {
         padding: 1rem;
         border-top: 1px solid var(--sidebar-border);
         margin-top: auto;
+        position: sticky;
+        bottom: 0;
+        background: var(--sidebar-bg);
+        z-index: 10;
     }
 
     .user-profile {
@@ -199,11 +285,13 @@ if ($users_result) {
         color: white;
         font-weight: 600;
         font-size: 0.9rem;
+        flex-shrink: 0;
     }
 
     .user-info {
         flex: 1;
         overflow: hidden;
+        transition: opacity 0.3s;
     }
 
     .user-name {
@@ -233,6 +321,8 @@ if ($users_result) {
         border-radius: 6px;
         transition: var(--sidebar-transition);
         margin-top: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
     .logout-link:hover {
@@ -245,11 +335,12 @@ if ($users_result) {
         display: flex;
         justify-content: center;
         align-items: center;
+        flex-shrink: 0;
     }
 
     /* Collapsed state */
     .sidebar.collapsed {
-        width: 80px;
+        width: var(--sidebar-collapsed-width);
     }
 
     .sidebar.collapsed .sidebar-logo span,
@@ -258,7 +349,11 @@ if ($users_result) {
     .sidebar.collapsed .sidebar-menu .badge,
     .sidebar.collapsed .user-info,
     .sidebar.collapsed .logout-link span {
-        display: none;
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+        height: 0;
+        overflow: hidden;
     }
 
     .sidebar.collapsed .sidebar-logo {
@@ -285,10 +380,33 @@ if ($users_result) {
         padding: 0.75rem 0.5rem;
     }
 
-    /* Responsive */
-    @media (max-width: 992px) {
+    /* Tooltips for collapsed state */
+    .sidebar.collapsed .sidebar-menu li {
+        position: relative;
+    }
+
+    .sidebar.collapsed .sidebar-menu a:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--sidebar-bg);
+        color: var(--sidebar-text);
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        margin-left: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 300;
+        pointer-events: none;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 900px) {
         .sidebar {
-            width: 80px;
+            width: var(--sidebar-collapsed-width);
         }
         
         .sidebar-logo span,
@@ -297,7 +415,11 @@ if ($users_result) {
         .sidebar-menu .badge,
         .user-info,
         .logout-link span {
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            overflow: hidden;
         }
         
         .sidebar-logo {
@@ -323,58 +445,83 @@ if ($users_result) {
             justify-content: center;
             padding: 0.75rem 0.5rem;
         }
+        
+        /* Show hamburger menu button */
+        .sidebar-menu-btn {
+            display: flex;
+        }
     }
 
-    @media (max-width: 576px) {
+    @media (max-width: 768px) {
         .sidebar {
-            width: 100%;
+            transform: translateX(-100%);
+            width: var(--sidebar-width);
+            box-shadow: 2px 0 16px rgba(0,0,0,0.18);
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        .sidebar-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .sidebar-logo span,
+        .sidebar-header,
+        .sidebar-menu span,
+        .sidebar-menu .badge,
+        .user-info,
+        .logout-link span {
+            opacity: 1;
+            visibility: visible;
+            width: auto;
             height: auto;
-            position: relative;
-            flex-direction: row;
-            flex-wrap: wrap;
-            padding: 0.5rem;
-            border-right: none;
-            border-bottom: 1px solid var(--sidebar-border);
+            overflow: visible;
         }
         
         .sidebar-logo {
-            width: 100%;
-            justify-content: center;
-            padding: 0.5rem;
-            border-bottom: none;
+            justify-content: flex-start;
+            padding: 1.5rem 1.5rem 1rem;
         }
         
-        .sidebar-header {
-            display: none;
-        }
-        
-        .sidebar-menu {
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-            padding: 0.25rem;
-            margin-top: 0;
-        }
-        
-        .sidebar-menu li {
-            width: auto;
+        .sidebar-logo img {
+            margin-right: 12px;
         }
         
         .sidebar-menu a {
+            justify-content: flex-start;
+            padding: 0.75rem 1rem;
+        }
+        
+        .user-profile {
+            justify-content: flex-start;
             padding: 0.5rem;
-            border-radius: 6px;
         }
         
+        .logout-link {
+            justify-content: flex-start;
+            padding: 0.75rem 1rem;
+        }
+        
+        /* Show hamburger menu button */
+        .sidebar-menu-btn {
+            display: flex;
+        }
+        
+        /* Adjust menu for mobile */
         .sidebar-menu a.active::before {
-            width: 100%;
-            height: 3px;
-            top: auto;
-            bottom: 0;
-            border-radius: 3px 3px 0 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 0 4px 4px 0;
         }
-        
-        .sidebar-footer {
-            display: none;
+    }
+
+    @media (max-width: 480px) {
+        .sidebar {
+            width: 100%;
+            max-width: 320px;
         }
     }
 </style>
@@ -388,32 +535,32 @@ if ($users_result) {
     <div class="sidebar-header">Navigation</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="admin_dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'admin_dashboard.php' ? 'active' : '' ?>">
+            <a href="admin_dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'admin_dashboard.php' ? 'active' : '' ?>" data-tooltip="Dashboard">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
         </li>
         <li>
-            <a href="manage_users.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_users.php' ? 'active' : '' ?>">
+            <a href="manage_users.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_users.php' ? 'active' : '' ?>" data-tooltip="Manage Users">
                 <i class="fas fa-users-cog"></i>
                 <span>Manage Users</span>
                 <span class="badge"><?php echo $total_users_count; ?></span>
             </a>
         </li>
         <li>
-            <a href="manage_documents.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_documents.php' ? 'active' : '' ?>">
+            <a href="manage_documents.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_documents.php' ? 'active' : '' ?>" data-tooltip="Documents">
                 <i class="fas fa-file-alt"></i>
                 <span>Documents</span>
             </a>
         </li>
         <li>
-            <a href="manage_courses.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_courses.php' ? 'active' : '' ?>">
+            <a href="manage_courses.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_courses.php' ? 'active' : '' ?>" data-tooltip="Courses">
                 <i class="fas fa-book-open"></i>
                 <span>Courses</span>
             </a>
         </li>
         <li>
-            <a href="admin_register_stationery.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'admin_register_stationery.php' ? 'active' : '' ?>">
+            <a href="admin_register_stationery.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'admin_register_stationery.php' ? 'active' : '' ?>" data-tooltip="Stationary">
                 <i class="fas fa-book-open"></i>
                 <span>Stationary</span>
             </a>
@@ -423,13 +570,13 @@ if ($users_result) {
     <div class="sidebar-header">Reports</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="reports.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : '' ?>">
+            <a href="reports.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : '' ?>" data-tooltip="Analytics">
                 <i class="fas fa-chart-bar"></i>
                 <span>Analytics</span>
             </a>
         </li>
         <li>
-            <a href="print_requests.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'print_requests.php' ? 'active' : '' ?>">
+            <a href="print_requests.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'print_requests.php' ? 'active' : '' ?>" data-tooltip="Print Requests">
                 <i class="fas fa-print"></i>
                 <span>Print Requests</span>
                 <span class="badge"><?php echo $pending_print_count; ?></span>
@@ -440,13 +587,13 @@ if ($users_result) {
     <div class="sidebar-header">System</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="system_settings.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'system_settings.php' ? 'active' : '' ?>">
+            <a href="system_settings.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'system_settings.php' ? 'active' : '' ?>" data-tooltip="Settings">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
         </li>
         <li>
-            <a href="backup.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'backup.php' ? 'active' : '' ?>">
+            <a href="backup.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'backup.php' ? 'active' : '' ?>" data-tooltip="Backups">
                 <i class="fas fa-database"></i>
                 <span>Backups</span>
             </a>
@@ -462,7 +609,7 @@ if ($users_result) {
             </div>
         </div>
         
-        <a href="logout.php" class="logout-link">
+        <a href="logout.php" class="logout-link" data-tooltip="Logout">
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
         </a>
@@ -470,20 +617,65 @@ if ($users_result) {
 </div>
 
 <script>
-    // Optional: Add toggle functionality for sidebar
     document.addEventListener('DOMContentLoaded', function() {
-        // This would be triggered by a button in your header
-        // document.getElementById('toggle-sidebar').addEventListener('click', function() {
-        //     document.getElementById('sidebar').classList.toggle('collapsed');
-        // });
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const menuBtn = document.getElementById('sidebarMenuBtn');
         
-        // Highlight active menu item based on current page
+        // Toggle sidebar function
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+            document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+        }
+        
+        // Close sidebar function
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        
+        // Event listeners
+        menuBtn.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', closeSidebar);
+        
+        // Handle window resize
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                menuBtn.style.display = 'flex';
+                closeSidebar();
+            } else {
+                menuBtn.style.display = 'none';
+                sidebar.classList.remove('open');
+                overlay.classList.remove('open');
+                document.body.style.overflow = '';
+            }
+            
+            // Handle automatic collapsing on medium screens (improved for tablets)
+            if (window.innerWidth <= 900 && window.innerWidth > 768) {
+                sidebar.classList.add('collapsed');
+            } else {
+                sidebar.classList.remove('collapsed');
+            }
+        }
+        
+        // Initialize and add event listener
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        
+        // Highlight active menu item
         const currentPage = window.location.pathname.split('/').pop();
         document.querySelectorAll('.sidebar-menu a').forEach(link => {
             if (link.getAttribute('href') === currentPage) {
                 link.classList.add('active');
-            } else {
-                link.classList.remove('active');
+            }
+        });
+        
+        // Add keyboard accessibility
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                closeSidebar();
             }
         });
     });
