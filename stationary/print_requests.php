@@ -11,6 +11,44 @@ include("../connection.php");
 
 $stationary_id = $_SESSION['stationary_admin_id'];
 
+// Handle status update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $job_id = $_POST['job_id'];
+    
+    if ($_POST['action'] === 'update_status') {
+        $status = $_POST['status'];
+        
+        $update_query = "UPDATE print_jobs SET status = ?, updated_at = NOW() WHERE job_id = ? AND stationery_id = ?";
+        $update_stmt = $conn->prepare($update_query);
+        $update_stmt->bind_param("sii", $status, $job_id, $stationary_id);
+        
+        if ($update_stmt->execute()) {
+            $_SESSION['success_message'] = "Job status updated successfully!";
+        } else {
+            $_SESSION['error_message'] = "Error updating job status: " . $conn->error;
+        }
+        
+        header("Location: print_requests.php");
+        exit();
+    }
+    
+    // Handle job deletion
+    if ($_POST['action'] === 'delete_job') {
+        $delete_query = "DELETE FROM print_jobs WHERE job_id = ? AND stationery_id = ? AND status = 'cancelled'";
+        $delete_stmt = $conn->prepare($delete_query);
+        $delete_stmt->bind_param("ii", $job_id, $stationary_id);
+        
+        if ($delete_stmt->execute()) {
+            $_SESSION['success_message'] = "Job deleted successfully!";
+        } else {
+            $_SESSION['error_message'] = "Error deleting job: " . $conn->error;
+        }
+        
+        header("Location: print_requests.php");
+        exit();
+    }
+}
+
 // Fetch print jobs for this stationary
 $query = "SELECT * FROM print_jobs WHERE stationery_id = ? ORDER BY created_at DESC";
 $stmt = $conn->prepare($query);
