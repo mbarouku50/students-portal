@@ -9,7 +9,6 @@ if (!isset($_SESSION['stationary_admin_id'])) {
 }
 include("../connection.php");
 
-
 $stationary_id = $_SESSION['stationary_admin_id'];
 
 // Fetch print jobs for this stationary
@@ -40,7 +39,6 @@ $status_colors = [
     'completed' => 'success',
     'cancelled' => 'danger'
 ];
-
 
 // Fetch shop details
 $shop_query = "SELECT * FROM stationery WHERE stationery_id = ?";
@@ -369,6 +367,57 @@ $shop_data = $shop_result->fetch_assoc();
         .toast-container {
             z-index: 9999;
         }
+        
+        /* Enhanced document viewer styles */
+        .document-viewer {
+            width: 100%;
+            min-height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .document-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        .document-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .file-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #6c757d;
+        }
+        
+        .pdf-container, .office-container {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 500px;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .text-preview {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 500px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -645,7 +694,7 @@ $shop_data = $shop_result->fetch_assoc();
 
     <!-- Job Details Modal -->
     <div class="modal fade" id="jobDetailsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Print Job Details</h5>

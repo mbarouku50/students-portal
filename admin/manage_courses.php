@@ -208,17 +208,22 @@ if ($result->num_rows > 0) {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
+            overflow: visible;
         }
         
         .course-card {
             background-color: white;
             border-radius: 8px;
-            overflow: hidden;
+            overflow: visible; /* ✅ Allow dropdown to escape */
             box-shadow: 0 3px 10px rgba(0,0,0,0.08);
             transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
+            z-index: 1; 
         }
-        
+        .course-card.active {
+            z-index: 9999; /* bring this card + dropdown on top */
+        }
+
         .course-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
@@ -298,24 +303,24 @@ if ($result->num_rows > 0) {
         .dropdown-content {
             display: none;
             position: absolute;
-            background-color: white;
+            background-color: #2c3e50; /* Changed to dark background for better contrast */
             min-width: 200px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-            z-index: 1000;
+            z-index: 2000;
             border-radius: 6px;
-            margin-top: 5px;
+            margin-top: 10px;
             right: 0;
             max-height: 300px;
             overflow-y: auto;
         }
 
         .dropdown-content a {
-            color: #333;
+            color: white; /* Changed to white for better contrast */
             padding: 12px 16px;
             text-decoration: none;
             display: block;
             font-size: 14px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid rgba(255,255,255,0.1); /* Lighter border for dark background */
             transition: background-color 0.2s;
         }
 
@@ -324,7 +329,7 @@ if ($result->num_rows > 0) {
         }
 
         .dropdown-content a:hover {
-            background-color: #f8f9fa;
+            background-color: rgba(255,255,255,0.1); /* Lighter hover effect for dark background */
         }
 
         .dropdown-content a i {
@@ -413,7 +418,7 @@ if ($result->num_rows > 0) {
                 align-items: flex-start;
             }
             
-            .dropdown-content {
+             .dropdown-content {
                 position: fixed;
                 top: 50%;
                 left: 50%;
@@ -421,6 +426,23 @@ if ($result->num_rows > 0) {
                 width: 90%;
                 max-width: 300px;
                 max-height: 80vh;
+                z-index: 1002; /* Higher z-index for mobile */
+            }
+            
+            /* Add overlay for mobile dropdowns */
+            .dropdown-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 1001;
+            }
+            
+            .dropdown-overlay.active {
+                display: block;
             }
         }
         
@@ -468,9 +490,8 @@ if ($result->num_rows > 0) {
     </style>
 </head>
 <body>
-    <button class="menu-toggle" id="menuToggle">
-        <i class="fas fa-bars"></i>
-    </button>
+   
+     <div class="dropdown-overlay" id="dropdownOverlay"></div>
     
     <?php include('sidebar.php'); ?>
     
@@ -574,6 +595,7 @@ if ($result->num_rows > 0) {
                                         <i class="fas fa-upload"></i> Upload <i class="fas fa-caret-down"></i>
                                     </button>
                                     <div id="dropdown-<?php echo $course['course_id']; ?>" class="dropdown-content">
+                    
                                         <a href="upload_docs.php?course_id=<?php echo $course['course_id']; ?>&type=lecture_notes">
                                             <i class="fas fa-file-alt"></i> Lecture Notes
                                         </a>
@@ -621,29 +643,49 @@ if ($result->num_rows > 0) {
         });
 
         // Toggle dropdown function
-        function toggleDropdown(button) {
-            // Close all other dropdowns first
-            var dropdowns = document.getElementsByClassName("dropdown-content");
-            for (var i = 0; i < dropdowns.length; i++) {
-                var openDropdown = dropdowns[i];
-                if (openDropdown !== button.nextElementSibling && openDropdown.classList.contains('show')) {
-                    openDropdown.classList.remove('show');
+                function toggleDropdown(button) {
+            const dropdown = button.nextElementSibling;
+            const card = button.closest('.course-card');
+            const isShowing = dropdown.classList.contains('show');
+
+            // Close all dropdowns & reset active cards
+            document.querySelectorAll('.dropdown-content').forEach(dd => dd.classList.remove('show'));
+            document.querySelectorAll('.course-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('dropdownOverlay').classList.remove('active');
+
+            // If this one was not showing, open it
+            if (!isShowing) {
+                dropdown.classList.add("show");
+                card.classList.add("active");
+
+                // Show overlay on mobile
+                if (window.innerWidth <= 768) {
+                    document.getElementById('dropdownOverlay').classList.add('active');
                 }
+
+                // Position dropdown correctly (flip up if no space)
+                positionDropdown(button, dropdown);
             }
-            
-            // Toggle the clicked dropdown
-            var dropdown = button.nextElementSibling;
-            dropdown.classList.toggle("show");
-            
-            // Ensure dropdown is fully visible
-            positionDropdown(button, dropdown);
         }
+
 
         // Position dropdown to ensure full visibility
         function positionDropdown(button, dropdown) {
             const buttonRect = button.getBoundingClientRect();
             const dropdownHeight = dropdown.offsetHeight;
+            const dropdownWidth = dropdown.offsetWidth;
             const windowHeight = window.innerHeight;
+            const windowWidth = window.innerWidth;
+            
+            // For mobile, center the dropdown
+            if (window.innerWidth <= 768) {
+                dropdown.style.top = '50%';
+                dropdown.style.left = '50%';
+                dropdown.style.transform = 'translate(-50%, -50%)';
+                dropdown.style.bottom = 'auto';
+                dropdown.style.right = 'auto';
+                return;
+            }
             
             // Check if dropdown would go off-screen at bottom
             if (buttonRect.bottom + dropdownHeight > windowHeight) {
@@ -661,23 +703,41 @@ if ($result->num_rows > 0) {
             }
             
             // Check if dropdown would go off-screen at right
-            if (buttonRect.right + dropdown.offsetWidth > window.innerWidth) {
+            if (buttonRect.right + dropdownWidth > windowWidth) {
                 dropdown.style.right = '0';
                 dropdown.style.left = 'auto';
             } else {
                 dropdown.style.left = '0';
                 dropdown.style.right = 'auto';
             }
+            
+            // Reset transform for desktop
+            dropdown.style.transform = 'none';
         }
 
         // Close dropdowns when clicking outside
         window.addEventListener('click', function(event) {
-            if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown-content')) {
+            if (!event.target.matches('.dropdown button') && 
+                !event.target.closest('.dropdown-content') &&
+                !event.target.matches('.dropdown-content a')) {
+                
                 var dropdowns = document.getElementsByClassName("dropdown-content");
                 for (var i = 0; i < dropdowns.length; i++) {
                     dropdowns[i].classList.remove('show');
                 }
+                
+                // Hide overlay
+                document.getElementById('dropdownOverlay').classList.remove('active');
             }
+        });
+        
+        // Close dropdowns when clicking on overlay
+        document.getElementById('dropdownOverlay').addEventListener('click', function() {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].classList.remove('show');
+            }
+            this.classList.remove('active');
         });
         
         // Mobile menu toggle
@@ -692,6 +752,9 @@ if ($result->num_rows > 0) {
             for (var i = 0; i < dropdowns.length; i++) {
                 dropdowns[i].classList.remove('show');
             }
+            
+            // Hide overlay
+            document.getElementById('dropdownOverlay').classList.remove('active');
         });
     </script>
 </body>

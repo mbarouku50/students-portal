@@ -836,9 +836,7 @@ if (isset($_POST['delete_document'])) {
     </style>
 </head>
 <body>
-    <button class="menu-toggle" id="menuToggle">
-        <i class="fas fa-bars"></i>
-    </button>
+    
     
     <div class="container">
         <?php include('sidebar.php'); ?>

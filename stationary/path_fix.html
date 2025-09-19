@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Path Diagnostic Tool - StationaryPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4895ef;
+            --secondary: #3f37c9;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --success: #4cc9f0;
+            --warning: #f8961e;
+            --danger: #f72585;
+            --gray: #6c757d;
+            --white: #ffffff;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark);
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: var(--white);
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .solution-card {
+            border-left: 4px solid var(--success);
+        }
+
+        .diagnostic-card {
+            border-left: 4px solid var(--warning);
+        }
+
+        .code-block {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', monospace;
+            margin: 15px 0;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .file-path {
+            background-color: #f0f5ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .permission-fix {
+            background-color: #fff5f5;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--danger);
+            margin: 15px 0;
+        }
+
+        .success-alert {
+            background-color: #f0fff4;
+            color: #2d7d3a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #48bb78;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1><i class="fas fa-file-alt me-2"></i>File Path Diagnostic Tool</h1>
+            <p class="mb-0">Resolving "File Not Found" issues in StationaryPro</p>
+        </div>
+
+        <div class="card solution-card">
+            <div class="card-header">
+                <i class="fas fa-wrench me-2"></i>Solution for File Path Issues
+            </div>
+            <div class="card-body">
+                <p class="lead">The error occurs because your PHP code cannot access the file even though it exists. This is typically due to file permission issues or incorrect path resolution.</p>
+                
+                <div class="permission-fix">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Immediate Fix</h5>
+                    <p>Change the file permissions for your uploads directory:</p>
+                    <div class="code-block">
+                        # Connect to your InfinityFree account via FTP or File Manager<br>
+        # Navigate to: /students-portal/stationary/uploads/<br>
+        # Set permissions to 755 for the uploads folder<br>
+        # Set permissions to 644 for all files in the uploads folder
+                    </div>
+                </div>
+
+                <h5 class="mt-4"><i class="fas fa-tasks me-2"></i>Step-by-Step Solution</h5>
+                
+                <div class="d-flex align-items-start mb-3">
+                    <span class="step-number">1</span>
+                    <div>
+                        <h6>Update your get_job_details.php file</h6>
+                        <p>Replace the path handling code with this corrected version:</p>
+                        <div class="code-block">
+        // INFINITYFREE PATH FIX<br>
+        $base_dir = $_SERVER['DOCUMENT_ROOT'];<br>
+        $file_relative_path = !empty($job['file_path']) ? $job['file_path'] : '';<br>
+        <br>
+        // Remove any potential duplicate path segments<br>
+        $clean_path = str_replace('students-portal/stationary/', '', $file_relative_path);<br>
+        $clean_path = str_replace('stationary/', '', $clean_path);<br>
+        <br>
+        // Build the correct absolute path<br>
+        $file_absolute_path = $base_dir . '/students-portal/stationary/uploads/' . basename($clean_path);<br>
+        <br>
+        // Build the correct URL path<br>
+        $file_url = '/students-portal/stationary/uploads/' . basename($clean_path);
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start mb-3">
+                    <span class="step-number">2</span>
+                    <div>
+                        <h6>Add debug information to diagnose issues</h6>
+                        <p>Temporarily add this code to display debugging information:</p>
+                        <div class="code-block">
+        // DEBUG OUTPUT - Remove after fixing<br>
+        echo "&lt;div class='alert alert-info'&gt;";<br>
+        echo "&lt;strong&gt;Debug Information:&lt;/strong&gt;&lt;br&gt;";<br>
+        echo "Base Dir: " . $base_dir . "&lt;br&gt;";<br>
+        echo "Original Path: " . $file_relative_path . "&lt;br&gt;";<br>
+        echo "Clean Path: " . $clean_path . "&lt;br&gt;";<br>
+        echo "Absolute Path: " . $file_absolute_path . "&lt;br&gt;";<br>
+        echo "File Exists: " . (file_exists($file_absolute_path) ? 'Yes' : 'No') . "&lt;br&gt;";<br>
+        echo "&lt;/div&gt;";
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start mb-3">
+                    <span class="step-number">3</span>
+                    <div>
+                        <h6>Verify your file upload script</h6>
+                        <p>Ensure files are being saved to the correct location. The upload script should save files to:</p>
+                        <div class="file-path">
+                            /students-portal/stationary/uploads/
+                        </div>
+                        <p>And store this path in the database:</p>
+                        <div class="file-path">
+                            uploads/filename.pdf
+                        </div>
+                    </div>
+                </div>
+
+                <div class="success-alert">
+                    <h5><i class="fas fa-check-circle me-2"></i>Testing the Fix</h5>
+                    <p>After making these changes, test by uploading a new file and trying to view it. The debug information will help you verify the paths are correct.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card diagnostic-card">
+            <div class="card-header">
+                <i class="fas fa-bug me-2"></i>Diagnostic Information
+            </div>
+            <div class="card-body">
+                <h5>Current Error Analysis</h5>
+                <div class="file-path">
+                    Expected path: /home/vol10_1/infinityfree.com/if0_39969696/htdocs/students-portal/stationary/uploads/68cd334c02a0b_GROUPS 2.pdf
+                </div>
+                
+                <p>This path looks correct, which means the issue is likely one of:</p>
+                <ul>
+                    <li>File permissions preventing PHP from reading the file</li>
+                    <li>The file not actually existing at that exact path</li>
+                    <li>A symbolic link or ownership issue</li>
+                </ul>
+
+                <h5 class="mt-4">Quick Permission Fix via .htaccess</h5>
+                <p>If you can't change permissions via FTP, try adding this to your .htaccess file:</p>
+                <div class="code-block">
+        # Fix permissions for uploaded files<br>
+        &lt;FilesMatch "\.(pdf|doc|docx|txt|jpg|jpeg|png)$"&gt;<br>
+        &nbsp;&nbsp;Order Allow,Deny<br>
+        &nbsp;&nbsp;Allow from all<br>
+        &lt;/FilesMatch&gt;
+                </div>
+
+                <h5 class="mt-4">Alternative Solution: Use Relative Paths</h5>
+                <p>If absolute paths continue to cause issues, use relative paths instead:</p>
+                <div class="code-block">
+        // Use relative path from your script location<br>
+        $file_absolute_path = dirname(__FILE__) . '/../stationary/uploads/' . basename($clean_path);<br>
+        <br>
+        // For URL<br>
+        $file_url = './uploads/' . basename($clean_path);
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-shield-alt me-2"></i>Security Recommendations
+            </div>
+            <div class="card-body">
+                <p>While fixing the path issues, consider these security improvements:</p>
+                
+                <div class="d-flex align-items-start mb-3">
+                    <span class="step-number">1</span>
+                    <div>
+                        <h6>Restrict direct access to uploads</h6>
+                        <p>Create a .htaccess file in your uploads directory with:</p>
+                        <div class="code-block">
+        Deny from all<br>
+        &lt;FilesMatch "\.(pdf|doc|docx|txt|jpg|jpeg|png)$"&gt;<br>
+        &nbsp;&nbsp;Allow from all<br>
+        &lt;/FilesMatch&gt;
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start mb-3">
+                    <span class="step-number">2</span>
+                    <div>
+                        <h6>Validate file types on upload</h6>
+                        <p>Ensure only allowed file types can be uploaded:</p>
+                        <div class="code-block">
+        $allowed_types = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png'];<br>
+        $file_ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));<br>
+        <br>
+        if (!in_array($file_ext, $allowed_types)) {<br>
+        &nbsp;&nbsp;// Reject the file<br>
+        }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="#" class="btn btn-primary btn-lg"><i class="fas fa-download me-2"></i>Download Fixed Code Snippets</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

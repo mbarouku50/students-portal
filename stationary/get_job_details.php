@@ -9,7 +9,6 @@ if (!isset($_SESSION['stationary_admin_id'])) {
 
 include("../connection.php");
 
-
 if (!isset($_GET['job_id']) || !is_numeric($_GET['job_id'])) {
     die('<div class="alert alert-danger">Invalid job ID specified.</div>');
 }
@@ -43,28 +42,52 @@ $status_colors = [
     'cancelled' => 'danger'
 ];
 
+// INFINITYFREE SPECIFIC FIXES:
+// Get the correct base path for InfinityFree
+$base_dir = $_SERVER['DOCUMENT_ROOT']; // This will give the correct document root for InfinityFree
+
 // File path handling - ensure correct paths
-$base_dir = dirname(dirname(__FILE__)); // Gets /var/www/html/students-portal
 $file_relative_path = !empty($job['file_path']) ? $job['file_path'] : '';
-$file_absolute_path = !empty($file_relative_path) ? $base_dir . '/stationary/' . $file_relative_path : '';
-$file_url = !empty($file_relative_path) ? '/students-portal/stationary/' . $file_relative_path : '';
-$file_name = !empty($file_absolute_path) ? basename($file_absolute_path) : 'No file attached';
-$file_ext = !empty($file_absolute_path) ? strtolower(pathinfo($file_absolute_path, PATHINFO_EXTENSION)) : '';
+
+// Fix the path construction for InfinityFree
+// Remove any duplicate "students-portal" or "stationary" parts that might be in the stored path
+$clean_file_path = str_replace(['students-portal/', 'stationary/'], '', $file_relative_path);
+$file_absolute_path = $base_dir . '/students-portal/stationary/' . $clean_file_path;
+
+// For URL construction - use relative path from document root
+$file_url = '/students-portal/stationary/' . $clean_file_path;
+
+$file_name = !empty($clean_file_path) ? basename($clean_file_path) : 'No file attached';
+$file_ext = !empty($clean_file_path) ? strtolower(pathinfo($clean_file_path, PATHINFO_EXTENSION)) : '';
+
+// Debug information (you can remove this after testing)
+echo '<!-- DEBUG INFO: ';
+echo 'Base Dir: ' . $base_dir . ' | ';
+echo 'Relative Path: ' . $file_relative_path . ' | ';
+echo 'Clean Path: ' . $clean_file_path . ' | ';
+echo 'Absolute Path: ' . $file_absolute_path . ' | ';
+echo 'File URL: ' . $file_url . ' | ';
+echo 'File Exists: ' . (file_exists($file_absolute_path) ? 'Yes' : 'No');
+echo ' -->';
 
 // Check if file actually exists
 $file_exists = !empty($file_absolute_path) && file_exists($file_absolute_path);
 
 // For Office Online Viewer - needs full URL
-$full_file_url = 'http://' . $_SERVER['HTTP_HOST'] . $file_url;
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+$full_file_url = $protocol . $_SERVER['HTTP_HOST'] . $file_url;
 ?>
 
-<?php if (!empty($file_absolute_path)): ?>
+<?php if (!empty($clean_file_path)): ?>
     <div class="file-preview border rounded p-3 mb-3">
         <h6>Document for Printing: <?= htmlspecialchars($file_name) ?></h6>
         
         <?php if (!$file_exists): ?>
             <div class="alert alert-danger">
-                File not found at: <?= htmlspecialchars($file_absolute_path) ?>
+                <h6>File Not Found!</h6>
+                <p class="mb-1">Expected path: <?= htmlspecialchars($file_absolute_path) ?></p>
+                <p class="mb-1">URL path: <?= htmlspecialchars($file_url) ?></p>
+                <small class="text-muted">Please check if the file was uploaded correctly.</small>
             </div>
         <?php else: ?>
             <div class="mt-3 mb-3" style="min-height: 500px;">
@@ -76,7 +99,7 @@ $full_file_url = 'http://' . $_SERVER['HTTP_HOST'] . $file_url;
                 
                 <?php elseif (in_array($file_ext, ['doc', 'docx', 'xls', 'xlsx'])): ?>
                     <div class="office-preview-container" style="height: 500px;">
-                        <?php if (isset($_SERVER['HTTPS']) || $_SERVER['SERVER_PORT'] == 443): ?>
+                        <?php if ($protocol === 'https://'): ?>
                             <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=<?= urlencode($full_file_url) ?>" width="100%" height="100%" frameborder="0"></iframe>
                         <?php else: ?>
                             <div class="alert alert-warning">
@@ -137,20 +160,19 @@ $full_file_url = 'http://' . $_SERVER['HTTP_HOST'] . $file_url;
     <div class="alert alert-danger">No document attached to this print job</div>
 <?php endif; ?>
 
-    <div class="action-buttons mt-3">
-        <form method="POST" action="update_job_status.php" class="d-inline">
-            <input type="hidden" name="job_id" value="<?= $job['job_id'] ?>">
-            <div class="input-group">
-                <select name="status" class="form-select form-select-sm">
-                    <option value="pending" <?= $job['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                    <option value="processing" <?= $job['status'] === 'processing' ? 'selected' : '' ?>>Processing</option>
-                    <option value="completed" <?= $job['status'] === 'completed' ? 'selected' : '' ?>>Completed</option>
-                    <option value="cancelled" <?= $job['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
-                </select>
-                <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="fas fa-save me-1"></i> Update Status
-                </button>
-            </div>
-        </form>
-    </div>
+<div class="action-buttons mt-3">
+    <form method="POST" action="update_job_status.php" class="d-inline">
+        <input type="hidden" name="job_id" value="<?= $job['job_id'] ?>">
+        <div class="input-group">
+            <select name="status" class="form-select form-select-sm">
+                <option value="pending" <?= $job['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
+                <option value="processing" <?= $job['status'] === 'processing' ? 'selected' : '' ?>>Processing</option>
+                <option value="completed" <?= $job['status'] === 'completed' ? 'selected' : '' ?>>Completed</option>
+                <option value="cancelled" <?= $job['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fas fa-save me-1"></i> Update Status
+            </button>
+        </div>
+    </form>
 </div>
