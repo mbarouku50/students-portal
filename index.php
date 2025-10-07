@@ -21,6 +21,11 @@ $valid_types = [
 // Get document type from URL if specified
 $doc_type = isset($_GET['type']) ? $_GET['type'] : '';
 
+// Check if search was submitted
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+$search_results = [];
+$has_searched = !empty($search_query);
+
 // Get documents from all semester tables
 $all_documents = [];
 $semester_tables = [];
@@ -44,12 +49,23 @@ foreach ($semester_tables as $table) {
         $query = "SELECT d.*, '$table' as source_table, 
                  c.course_code, c.course_name 
                  FROM $table d 
-                 LEFT JOIN courses c ON d.course_id = c.course_id
-                 ORDER BY d.uploaded_at DESC";
+                 LEFT JOIN courses c ON d.course_id = c.course_id";
+        
+        // Add search condition if a search query exists
+        if ($has_searched) {
+            $query .= " WHERE (d.title LIKE ? OR d.description LIKE ? OR c.course_code LIKE ? OR c.course_name LIKE ?)";
+        }
+        
+        $query .= " ORDER BY d.uploaded_at DESC";
         
         // Prepare and execute query
         $stmt = $conn->prepare($query);
         if ($stmt) {
+            if ($has_searched) {
+                $search_param = "%" . $search_query . "%";
+                $stmt->bind_param("ssss", $search_param, $search_param, $search_param, $search_param);
+            }
+            
             $stmt->execute();
             $result = $stmt->get_result();
             
@@ -61,7 +77,12 @@ foreach ($semester_tables as $table) {
                         $row['semester'] = $matches[1];
                         $row['level'] = $matches[2];
                     }
-                    $all_documents[] = $row;
+                    
+                    if ($has_searched) {
+                        $search_results[] = $row;
+                    } else {
+                        $all_documents[] = $row;
+                    }
                 }
             }
             $stmt->close();
@@ -91,54 +112,55 @@ if ($result && $result->num_rows > 0) {
         --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
     .hero {
-            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9));
-            background-image: url('pexels-markusspiske-96593.jpg');
-            background-size: cover;
-            background-position: center;
-            color: white;
-            padding: 4rem 0;
-            text-align: center;
-        }
-        
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .hero p {
-            font-size: 1.2rem;
-            max-width: 700px;
-            margin: 0 auto 2rem;
-        }
-        
-        .search-bar {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-        }
-        
-        .search-bar input {
-            flex: 1;
-            padding: 0.8rem;
-            border: none;
-            border-radius: 4px 0 0 4px;
-            font-size: 1rem;
-        }
-        
-        .search-bar button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 0 1.5rem;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        
-        .search-bar button:hover {
-            background-color: #c0392b;
-        }
+        background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9));
+        background-image: url('pexels-markusspiske-96593.jpg');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 4rem 0;
+        text-align: center;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .hero p {
+        font-size: 1.2rem;
+        max-width: 700px;
+        margin: 0 auto 2rem;
+    }
+    
+    .search-bar {
+        max-width: 600px;
+        margin: 0 auto;
+        display: flex;
+    }
+    
+    .search-bar input {
+        flex: 1;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 4px 0 0 4px;
+        font-size: 1rem;
+    }
+    
+    .search-bar button {
+        background-color: var(--secondary);
+        color: white;
+        border: none;
+        padding: 0 1.5rem;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.3s;
+    }
+    
+    .search-bar button:hover {
+        background-color: #0d9669;
+    }
+    
     .documents-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -322,17 +344,114 @@ if ($result && $result->num_rows > 0) {
         padding: 2rem 0;
         background: #f8fafc;
     }
+    
+    .search-results {
+        margin: 2rem 0;
+    }
+    
+    .result-count {
+        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
+        color: var(--gray);
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray);
+    }
+    
+    .document-info {
+        padding: 1.5rem;
+    }
+    
+    .document-info h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: var(--dark);
+    }
+    
+    .document-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: var(--gray);
+    }
+    
+    .document-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .document-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .document-actions .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
 </style>
-    <section class="hero">
-        <div class="container">
-            <h1>Your University Document Repository</h1>
-            <p>Find and share assignments, exams, notes, and other academic resources for all CBE bachelor degree programs.</p>
-            <div class="search-bar">
-                <input type="text" placeholder="Search for documents...">
-                <button>Search</button>
-            </div>
+
+<section class="hero">
+    <div class="container">
+        <h1>Your University Document Repository</h1>
+        <p>Find and share assignments, exams, notes, and other academic resources for all CBE bachelor degree programs.</p>
+        <form method="GET" action="" class="search-bar">
+            <input type="text" name="search" placeholder="Search for documents, courses, or keywords..." value="<?php echo htmlspecialchars($search_query); ?>">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+</section>
+
+<?php if ($has_searched): ?>
+<section class="search-results">
+    <div class="container">
+        <h2 class="section-title">Search Results</h2>
+        <div class="result-count">
+            Found <?php echo count($search_results); ?> result(s) for "<?php echo htmlspecialchars($search_query); ?>"
         </div>
-    </section>
+        
+        <?php if (count($search_results) > 0): ?>
+        <div class="documents-grid">
+            <?php foreach ($search_results as $document): ?>
+            <div class="document-card">
+                <div class="card-header">
+                    <span class="doc-type-badge">
+                        <i class="fas <?php echo $valid_types[$document['doc_type']]['icon'] ?? 'fa-file'; ?>"></i>
+                        <?php echo $valid_types[$document['doc_type']]['name'] ?? 'Document'; ?>
+                    </span>
+                    <h3><?php echo htmlspecialchars($document['title']); ?></h3>
+                </div>
+                <div class="document-info">
+                    <p><?php echo htmlspecialchars(substr($document['description'], 0, 100)); ?><?php echo strlen($document['description']) > 100 ? '...' : ''; ?></p>
+                    <div class="document-meta">
+                        <span><i class="fas fa-book"></i> <?php echo htmlspecialchars($document['course_code'] . ' - ' . $document['course_name']); ?></span>
+                        <span><i class="fas fa-graduation-cap"></i> <?php echo ucfirst($document['level']); ?></span>
+                        <span><i class="fas fa-calendar"></i> Semester <?php echo $document['semester']; ?></span>
+                    </div>
+                    <div class="document-actions">
+                        <a href="download.php?table=<?php echo urlencode($document['source_table']); ?>&id=<?php echo $document['doc_id']; ?>" class="btn">Download</a>
+                        <a href="view_document.php?table=<?php echo urlencode($document['source_table']); ?>&id=<?php echo $document['doc_id']; ?>" class="btn" style="background-color: var(--gray);">View Details</a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <div class="no-results">
+            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h3>No documents found</h3>
+            <p>Try different keywords or browse by document type or course.</p>
+        </div>
+        <?php endif; ?>
+    </div>
+</section>
+<?php endif; ?>
 
 <section class="main-content" id="courses">
     <div class="container">
@@ -364,7 +483,7 @@ if ($result && $result->num_rows > 0) {
         <!-- Document Types Grid -->
         <div class="doc-types-grid">
             <?php foreach ($valid_types as $type_key => $type_info): ?>
-                <div class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
+                <a href="?type=<?php echo $type_key; ?>" class="doc-type-card <?php echo $doc_type === $type_key ? 'active' : ''; ?>">
                     <i class="fas <?php echo $type_info['icon']; ?>"></i>
                     <h3><?php echo $type_info['name']; ?></h3>
                     <p>
@@ -376,7 +495,7 @@ if ($result && $result->num_rows > 0) {
                         echo $count . ' document' . ($count !== 1 ? 's' : '');
                         ?>
                     </p>
-                    </div>
+                </a>
             <?php endforeach; ?>
         </div>
     </div>
