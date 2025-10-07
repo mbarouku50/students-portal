@@ -43,8 +43,9 @@ $valid_types = [
     'cover_pages' => ['icon' => 'fa-file-image', 'name' => 'Cover Pages']
 ];
 
-// Get the active tab from URL or set default
+// Get the active tab and semester from URL or set defaults
 $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'certificate';
+$active_semester = isset($_GET['semester']) ? $_GET['semester'] : '1';
 
 // Define all available tabs
 $tabs = [
@@ -56,19 +57,14 @@ $tabs = [
     'bachelor3' => ['name' => 'Bachelor III', 'levels' => ['bachelor3']]
 ];
 
-// Get documents for this course from the active tab's levels
+// Get documents for this course from the active tab's levels and semester
 $course_documents = [];
 $semester_tables = [];
 
-// Generate semester table names for the active tab
+// Generate semester table names for the active tab and semester
 $levels = $tabs[$active_tab]['levels'];
-$semesters = ['1', '2'];
-foreach ($semesters as $semester_val) {
-    foreach ($levels as $level_val) {
-        $table_name = 'sem' . $semester_val . '_' . $level_val . '_documents';
-        $semester_tables[] = $table_name;
-    }
-}
+$table_name = 'sem' . $active_semester . '_' . $levels[0] . '_documents';
+$semester_tables[] = $table_name;
 
 // Check each table and fetch documents for this course
 foreach ($semester_tables as $table) {
@@ -213,7 +209,7 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
         
         /* Tabs styling */
         .tabs-container {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
@@ -229,7 +225,7 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             padding: 0.25rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             min-width: 100%;
         }
         
@@ -252,6 +248,46 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
         .tab.active {
             background-color: var(--primary);
             color: white;
+        }
+        
+        /* Semester Tabs */
+        .semester-tabs-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .semester-tabs {
+            display: inline-flex;
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 0.25rem;
+            min-width: auto;
+        }
+        
+        .semester-tab {
+            padding: 0.6rem 1.2rem;
+            cursor: pointer;
+            border-radius: var(--radius);
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .semester-tab:hover {
+            background-color: var(--gray-light);
+        }
+        
+        .semester-tab.active {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .semester-label {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+            display: block;
         }
         
         /* Documents section */
@@ -458,6 +494,16 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
                 font-size: 0.9rem;
             }
             
+            .semester-tabs {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
+            
+            .semester-tab {
+                flex: 0 0 auto;
+            }
+            
             .documents-grid {
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
                 gap: 1rem;
@@ -499,23 +545,43 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
             <p><?php echo htmlspecialchars($course['description']); ?></p>
         </div>
         
-        <!-- Tabs Navigation -->
+        <!-- Level Tabs Navigation -->
         <div class="tabs-container">
             <div class="tabs">
                 <?php foreach ($tabs as $tab_key => $tab_info): ?>
                     <div class="tab <?php echo $active_tab == $tab_key ? 'active' : ''; ?>" 
-                         onclick="changeTab('<?php echo $tab_key; ?>')">
+                         onclick="changeTab('<?php echo $tab_key; ?>', '<?php echo $active_semester; ?>')">
                         <?php echo $tab_info['name']; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
         </div>
         
+        <!-- Semester Tabs Navigation -->
+        <div class="semester-tabs-container">
+            <span class="semester-label">Select Semester:</span>
+            <div class="semester-tabs">
+                <div class="semester-tab <?php echo $active_semester == '1' ? 'active' : ''; ?>" 
+                     onclick="changeSemester('<?php echo $active_tab; ?>', '1')">
+                    Semester 1
+                </div>
+                <div class="semester-tab <?php echo $active_semester == '2' ? 'active' : ''; ?>" 
+                     onclick="changeSemester('<?php echo $active_tab; ?>', '2')">
+                    Semester 2
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Selection Info -->
+        <div style="margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: #e0f2fe; border-radius: var(--radius); border-left: 4px solid var(--primary);">
+            <strong>Currently viewing:</strong> <?php echo $tabs[$active_tab]['name']; ?> - Semester <?php echo $active_semester; ?>
+        </div>
+        
         <?php if (empty($course_documents)): ?>
             <div class="empty-state">
                 <i class="fas fa-folder-open"></i>
                 <h3>No Documents Available</h3>
-                <p>There are currently no documents uploaded for <?php echo $tabs[$active_tab]['name']; ?> level. Please check another tab or come back later.</p>
+                <p>There are currently no documents uploaded for <?php echo $tabs[$active_tab]['name']; ?> - Semester <?php echo $active_semester; ?>. Please check another semester or level.</p>
             </div>
         <?php else: ?>
             <?php foreach ($valid_types as $type_key => $type_info): ?>
@@ -591,14 +657,20 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
     </div>
 
     <script>
-    function changeTab(tabName) {
-        // Update URL with the selected tab without reloading the page
+    function changeTab(tabName, semester) {
+        // Update URL with the selected tab and semester
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
-        window.history.pushState({}, '', url);
-        
-        // Reload the page to show documents for the selected tab
-        window.location.reload();
+        url.searchParams.set('semester', semester);
+        window.location.href = url.toString();
+    }
+    
+    function changeSemester(tabName, semester) {
+        // Update URL with the selected semester
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        url.searchParams.set('semester', semester);
+        window.location.href = url.toString();
     }
     
     function incrementDownloadCount(docId, tableName) {
@@ -610,21 +682,6 @@ if (isset($_GET['download_id']) && isset($_GET['table'])) {
         // Allow the download to proceed naturally
         return true;
     }
-    
-    // Set active tab based on URL parameter
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tabParam = urlParams.get('tab');
-        if (tabParam) {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.classList.remove('active');
-                if (tab.textContent.trim().toLowerCase().includes(tabParam.toLowerCase())) {
-                    tab.classList.add('active');
-                }
-            });
-        }
-    });
     </script>
 </body>
 </html>
